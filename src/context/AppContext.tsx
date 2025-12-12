@@ -1,242 +1,132 @@
-import React, { createContext, useContext, useReducer, useEffect, useState } from 'react';
-import { AppContextType, Item, Tag, AppData } from '../types';
-import { storage } from '../storage/asyncStorage';
+// src/context/AppContext.tsx
+import React, {createContext, useContext, ReactNode} from 'react';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {Item, Tag, AppData} from '../types';
 
-// Используем типы для повышения читаемости и предотвращения ошибок
-type AppState = {
-    items: Item[];
-    tags: Tag[];
-};
+// Типы действий
+type AddItemData = Omit<Item, 'id' | 'createdAt' | 'updatedAt'>;
+type UpdateItemData = { id: string; updates: Partial<Item> };
 
-type AppAction =
-    | { type: 'SET_LOADING'; payload: boolean }
-    | { type: 'SET_DATA'; payload: AppData }
-    | { type: 'ADD_ITEM'; payload: Item }
-    | { type: 'UPDATE_ITEM'; payload: { id: string; updates: Partial<Item> } }
-    | { type: 'DELETE_ITEM'; payload: string }
-    | { type: 'TOGGLE_FAVORITE'; payload: string }
-    | { type: 'ADD_TAG'; payload: Tag }
-    | { type: 'CLEAR_DATA' };
+interface AppContextType {
+    // Мутации — только действия, меняющие данные
+    addItem: (item: AddItemData) => void;
+    updateItem: (data: UpdateItemData) => void;
+    deleteItem: (id: string) => void;
+    toggleFavorite: (id: string) => void;
+    addTag: (tag: Omit<Tag, 'id'>) => void;
+    clearAllData: () => Promise<void>;
+}
 
-const initialState: AppState = {
-    items: [],
-    tags: [],
-};
-
-// Обновленный reducer с комментариями и более безопасным кодом
-const appReducer = (state: AppState, action: AppAction): AppState => {
-    switch (action.type) {
-        case 'SET_DATA':
-            return {
-                ...state,
-                items: action.payload.items || [],
-                tags: action.payload.tags || [],
-            };
-
-        case 'ADD_ITEM':
-            return {
-                ...state,
-                items: [action.payload, ...state.items],
-            };
-
-        case 'UPDATE_ITEM':
-            return {
-                ...state,
-                items: state.items.map(item =>
-                    item.id === action.payload.id
-                        ? { ...item, ...action.payload.updates, updatedAt: new Date() }
-                        : item
-                ),
-            };
-
-        case 'DELETE_ITEM':
-            return {
-                ...state,
-                items: state.items.filter(item => item.id !== action.payload),
-            };
-
-        case 'TOGGLE_FAVORITE':
-            return {
-                ...state,
-                items: state.items.map(item =>
-                    item.id === action.payload
-                        ? { ...item, isFavorite: !item.isFavorite, updatedAt: new Date() }
-                        : item
-                ),
-            };
-
-        case 'ADD_TAG':
-            return {
-                ...state,
-                tags: [...state.tags, action.payload],
-            };
-
-        case 'CLEAR_DATA':
-            // Возвращаем начальное состояние, но можно также загрузить из initialData, если доступно
-            return {
-                items: [],
-                tags: [],
-            };
-
-        default:
-            return state;
-    }
-};
-
-// Контекст приложения
+// Контекст
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [state, dispatch] = useReducer(appReducer, initialState);
-    const [isLoading, setIsLoading] = useState(true);
+// Провайдер
+export const AppProvider: React.FC<{ children: ReactNode }> = ({children}) => {
+    const queryClient = useQueryClient();
 
-    // Загрузка данных при старте приложения
-    useEffect(() => {
-        loadInitialData();
-    }, []);
+    // Вспомогательная функция генерации ID
+    const generateId = () => `${Date.now()}${Math.random().toString(36).substr(2, 9)}`;
 
-    const loadInitialData = async () => {
-        try {
-            setIsLoading(true);
-            const data = await storage.loadData();
-            dispatch({ type: 'SET_DATA', payload: data });
-        } catch (error) {
-            console.error('Error loading initial data:', error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    // === Мутации ===
 
-    // Автосохранение данных при изменении
-    useEffect(() => {
-        if (!isLoading) {
-            saveData();
-        }
-    }, [state.items, state.tags]);
-
-    const saveData = async () => {
-        try {
-            const appData: AppData = {
-                items: state.items,
-                tags: state.tags,
-                collections: [], // Можно использовать placeholder или подключить реальные данные
-                settings: {
-                    version: '1.0.0',
-                    lastBackup: new Date(),
-                },
+    const addItem = useMutation({
+        mutationFn: async (newItemData: AddItemData) => {
+            const current = queryClient.getQueryData<AppData>(['wardrobe']) ?? {items: [], tags: []};
+            const newItem: Item = {
+                ...newItemData,
+                id: generateId(),
+                createdAt: new Date(),
+                updatedAt: new Date(),
             };
-            await storage.saveData(appData);
-        } catch (error) {
-            console.error('Error auto-saving data:', error);
-        }
-    };
+            return {...current, items: [newItem, ...current.items]};
+        },
+        onSuccess: (updatedData) => {
+            queryClient.setQueryData(['wardrobe'], updatedData);
+        },
+    }).mutate;
 
-    // Генерация уникального ID
-    const generateId = (): string => {
-        return `${Date.now()}${Math.random().toString(36).substr(2, 9)}`;
-    };
-
-    // Очистка данных
-    const clearData = () => {
-        dispatch({ type: 'CLEAR_DATA' });
-    };
-
-    // Добавление нового элемента
-    const addItem = (itemData: Omit<Item, 'id' | 'createdAt' | 'updatedAt'>) => {
-        const newItem: Item = {
-            ...itemData,
-            id: generateId(),
-            createdAt: new Date(),
-            updatedAt: new Date(),
-        };
-        dispatch({ type: 'ADD_ITEM', payload: newItem });
-    };
-
-    // Обновление существующего элемента
-    const updateItem = (id: string, updates: Partial<Item>) => {
-        dispatch({ type: 'UPDATE_ITEM', payload: { id, updates } });
-    };
-
-    // Удаление элемента
-    const deleteItem = (id: string) => {
-        dispatch({ type: 'DELETE_ITEM', payload: id });
-    };
-
-    // Переключение флага "избранное"
-    const toggleFavorite = (id: string) => {
-        dispatch({ type: 'TOGGLE_FAVORITE', payload: id });
-    };
-
-    // Добавление тега
-    const addTag = (tagData: Omit<Tag, 'id'>) => {
-        const newTag: Tag = {
-            ...tagData,
-            id: generateId(),
-        };
-        dispatch({ type: 'ADD_TAG', payload: newTag });
-    };
-
-    // Фильтрация элементов по различным критериям
-    const getFilteredItems = (filters: {
-        cardType?: string;
-        tags?: string[];
-        favorite?: boolean;
-        search?: string;
-    }) => {
-        let filtered = state.items;
-
-        if (filters.cardType) {
-            filtered = filtered.filter(item => item.cardType === filters.cardType);
-        }
-
-        if (filters.favorite !== undefined) {
-            filtered = filtered.filter(item => item.isFavorite === filters.favorite);
-        }
-
-        if (filters.tags && filters.tags.length > 0) {
-            filtered = filtered.filter(item =>
-                item.tags.some(tag => filters.tags!.includes(tag.id))
+    const updateItem = useMutation({
+        mutationFn: async ({id, updates}: UpdateItemData) => {
+            const current = queryClient.getQueryData<AppData>(['wardrobe']);
+            if (!current) throw new Error('No data');
+            const updatedItems = current.items.map(item =>
+                item.id === id
+                    ? {...item, ...updates, updatedAt: new Date()}
+                    : item
             );
-        }
+            return {...current, items: updatedItems};
+        },
+        onSuccess: (updatedData) => {
+            queryClient.setQueryData(['wardrobe'], updatedData);
+        },
+    }).mutate;
 
-        if (filters.search) {
-            const searchLower = filters.search.toLowerCase();
-            filtered = filtered.filter(item =>
-                item.name.toLowerCase().includes(searchLower) ||
-                item.notes?.toLowerCase().includes(searchLower) ||
-                item.purchasePlace?.toLowerCase().includes(searchLower)
+    const deleteItem = useMutation({
+        mutationFn: async (id: string) => {
+            const current = queryClient.getQueryData<AppData>(['wardrobe']);
+            if (!current) return current;
+            return {
+                ...current,
+                items: current.items.filter(item => item.id !== id),
+            };
+        },
+        onSuccess: (updatedData) => {
+            queryClient.setQueryData(['wardrobe'], updatedData);
+        },
+    }).mutate;
+
+    const toggleFavorite = useMutation({
+        mutationFn: async (id: string) => {
+            const current = queryClient.getQueryData<AppData>(['wardrobe']);
+            if (!current) return current;
+            const updatedItems = current.items.map(item =>
+                item.id === id
+                    ? {...item, isFavorite: !item.isFavorite, updatedAt: new Date()}
+                    : item
             );
-        }
+            return {...current, items: updatedItems};
+        },
+        onSuccess: (updatedData) => {
+            queryClient.setQueryData(['wardrobe'], updatedData);
+        },
+    }).mutate;
 
-        return filtered;
+    const addTag = useMutation({
+        mutationFn: async (tagData: Omit<Tag, 'id'>) => {
+            const current = queryClient.getQueryData<AppData>(['wardrobe']) ?? {items: [], tags: []};
+            const newTag: Tag = {
+                ...tagData,
+                id: generateId(),
+            };
+            return {...current, tags: [...current.tags, newTag]};
+        },
+        onSuccess: (updatedData) => {
+            queryClient.setQueryData(['wardrobe'], updatedData);
+        },
+    }).mutate;
+
+    const clearAllData = async () => {
+        await queryClient.setQueryData(['wardrobe'], {items: [], tags: [], collections: [], settings: {}});
+        queryClient.invalidateQueries({queryKey: ['wardrobe']});
     };
 
-    // Объект контекста, который будет передаваться в компоненты
     const value: AppContextType = {
-        items: state.items,
-        tags: state.tags,
         addItem,
         updateItem,
         deleteItem,
         toggleFavorite,
         addTag,
-        getFilteredItems,
-        isLoading,
-        clearData,
+        clearAllData,
     };
 
-    return (
-        <AppContext.Provider value={value}>
-            {children}
-        </AppContext.Provider>
-    );
+    return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
 
-// Хук для использования контекста
-export const useApp = (): AppContextType => {
+// Хук для использования
+export const useAppActions = (): AppContextType => {
     const context = useContext(AppContext);
-    if (context === undefined) {
-        throw new Error('useApp must be used within an AppProvider');
+    if (!context) {
+        throw new Error('useAppActions must be used within AppProvider');
     }
     return context;
 };

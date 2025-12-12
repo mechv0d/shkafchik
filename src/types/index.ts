@@ -1,5 +1,30 @@
 export type CardType = 'purchased' | 'in_cart';
 
+const DEFAULT_APP_DATA: AppData = {
+    items: [],
+    tags: [],
+    collections: [],
+    settings: {
+        version: '1.0.0',
+        lastBackup: new Date(),
+    },
+};
+
+const DEFAULT_ITEM: Item = {
+    id: '',
+    name: '',
+    price: 0,
+    photos: [],
+    tags: [],
+    rating: 0,
+    notes: '',
+    purchasePlace: '',
+    cardType: 'purchased',
+    isFavorite: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+};
+
 export interface Tag {
     id: string;
     name: string;

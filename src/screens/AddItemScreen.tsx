@@ -8,14 +8,18 @@ import {
     Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { useApp } from '../context/AppContext';
+import { useAppActions } from '../context/AppContext';
+import { useTags } from '../hooks/useTags';
 import Button from '../components/Button';
 import Tag from '../components/Tag';
-import { CardType, Tag as TagType } from '../types';
+import { CardType } from '../types';
+import {useWardrobeMutations} from "@/src/hooks/useWardrobeMutations";
+import {useItems} from "@/src/hooks/useItems";
 
 const AddItemScreen: React.FC = () => {
-    const navigation = useNavigation();
-    const { addItem, tags, addTag } = useApp();
+    const navigation = useNavigation<any>();
+    const { addItem } = useAppActions();
+    const { tags, addTag } = useTags(); // ← данные из React Query
 
     const [formData, setFormData] = useState({
         name: '',
@@ -26,6 +30,7 @@ const AddItemScreen: React.FC = () => {
         cardType: 'purchased' as CardType,
         isFavorite: false,
     });
+
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
     const [newTagName, setNewTagName] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,14 +46,14 @@ const AddItemScreen: React.FC = () => {
         try {
             const selectedTagObjects = tags.filter(tag => selectedTags.includes(tag.id));
 
-            await addItem({
+            addItem({
                 name: formData.name.trim(),
                 photos: [],
                 price: Number(formData.price) || 0,
                 rating: formData.rating,
-                notes: formData.notes.trim(),
+                notes: formData.notes.trim() || "undefined",
+                purchasePlace: formData.purchasePlace.trim() || "undefined",
                 tags: selectedTagObjects,
-                purchasePlace: formData.purchasePlace.trim(),
                 cardType: formData.cardType,
                 isFavorite: formData.isFavorite,
             });
@@ -63,13 +68,12 @@ const AddItemScreen: React.FC = () => {
     };
 
     const handleAddTag = () => {
-        if (newTagName.trim() && !tags.find(tag => tag.name === newTagName.trim())) {
-            const newTag: Omit<TagType, 'id'> = {
+        if (newTagName.trim() && !tags.find(t => t.name.toLowerCase() === newTagName.trim().toLowerCase())) {
+            addTag({
                 name: newTagName.trim(),
-                color: '#6B7280', // Серый по умолчанию
+                color: '#6B7280',
                 colorType: 'light',
-            };
-            addTag(newTag);
+            });
             setNewTagName('');
         }
     };
@@ -82,31 +86,28 @@ const AddItemScreen: React.FC = () => {
         );
     };
 
-    const renderStars = () => {
-        return (
-            <View className="flex-row space-x-2">
-                {[1, 2, 3, 4, 5].map((star) => (
-                    <TouchableOpacity
-                        key={star}
-                        onPress={() => setFormData(prev => ({ ...prev, rating: star }))}
-                    >
-                        <Text className={star <= formData.rating ? 'text-yellow-500 text-2xl' : 'text-gray-300 text-2xl'}>
-                            ★
-                        </Text>
-                    </TouchableOpacity>
-                ))}
-            </View>
-        );
-    };
+    const renderStars = () => (
+        <View className="flex-row space-x-2">
+            {[1, 2, 3, 4, 5].map((star) => (
+                <TouchableOpacity
+                    key={star}
+                    onPress={() => setFormData(prev => ({ ...prev, rating: star }))}
+                >
+                    <Text className={star <= formData.rating ? 'text-yellow-500 text-2xl' : 'text-gray-300 text-2xl'}>
+                        Star
+                    </Text>
+                </TouchableOpacity>
+            ))}
+        </View>
+    );
 
     return (
         <ScrollView className="flex-1 bg-background p-4">
             <View className="space-y-6">
+
                 {/* Название */}
                 <View>
-                    <Text className="text-lg font-semibold text-gray-800 mb-2">
-                        Название *
-                    </Text>
+                    <Text className="text-lg font-semibold text-gray-800 mb-2">Название *</Text>
                     <TextInput
                         className="bg-card rounded-lg px-4 py-3 border border-gray-200"
                         placeholder="Например: Синяя футболка"
@@ -117,9 +118,7 @@ const AddItemScreen: React.FC = () => {
 
                 {/* Цена */}
                 <View>
-                    <Text className="text-lg font-semibold text-gray-800 mb-2">
-                        Цена
-                    </Text>
+                    <Text className="text-lg font-semibold text-gray-800 mb-2">Цена</Text>
                     <TextInput
                         className="bg-card rounded-lg px-4 py-3 border border-gray-200"
                         placeholder="0"
@@ -131,56 +130,27 @@ const AddItemScreen: React.FC = () => {
 
                 {/* Рейтинг */}
                 <View>
-                    <Text className="text-lg font-semibold text-gray-800 mb-2">
-                        Оценка
-                    </Text>
+                    <Text className="text-lg font-semibold text-gray-800 mb-2">Оценка</Text>
                     {renderStars()}
-                </View>
-
-                {/* Место покупки */}
-                <View>
-                    <Text className="text-lg font-semibold text-gray-800 mb-2">
-                        Место покупки
-                    </Text>
-                    <TextInput
-                        className="bg-card rounded-lg px-4 py-3 border border-gray-200"
-                        placeholder="Например: OZON, Wildberries"
-                        value={formData.purchasePlace}
-                        onChangeText={(text) => setFormData(prev => ({ ...prev, purchasePlace: text }))}
-                    />
                 </View>
 
                 {/* Тип карточки */}
                 <View>
-                    <Text className="text-lg font-semibold text-gray-800 mb-2">
-                        Статус
-                    </Text>
-                    <View className="flex-row space-x-4">
+                    <Text className="text-lg font-semibold text-gray-800 mb-2">Статус</Text>
+                    <View className="flex-row space-x-3">
                         <TouchableOpacity
-                            className={`flex-1 py-3 rounded-lg border ${
-                                formData.cardType === 'purchased'
-                                    ? 'bg-green-100 border-green-500'
-                                    : 'bg-card border-gray-200'
-                            }`}
+                            className={`flex-1 py-3 rounded-lg border ${formData.cardType === 'purchased' ? 'bg-green-100 border-green-500' : 'bg-card border-gray-200'}`}
                             onPress={() => setFormData(prev => ({ ...prev, cardType: 'purchased' }))}
                         >
-                            <Text className={`text-center font-medium ${
-                                formData.cardType === 'purchased' ? 'text-green-800' : 'text-gray-600'
-                            }`}>
+                            <Text className={`text-center font-medium ${formData.cardType === 'purchased' ? 'text-green-800' : 'text-gray-600'}`}>
                                 Куплено
                             </Text>
                         </TouchableOpacity>
                         <TouchableOpacity
-                            className={`flex-1 py-3 rounded-lg border ${
-                                formData.cardType === 'in_cart'
-                                    ? 'bg-blue-100 border-blue-500'
-                                    : 'bg-card border-gray-200'
-                            }`}
+                            className={`flex-1 py-3 rounded-lg border ${formData.cardType === 'in_cart' ? 'bg-blue-100 border-blue-500' : 'bg-card border-gray-200'}`}
                             onPress={() => setFormData(prev => ({ ...prev, cardType: 'in_cart' }))}
                         >
-                            <Text className={`text-center font-medium ${
-                                formData.cardType === 'in_cart' ? 'text-blue-800' : 'text-gray-600'
-                            }`}>
+                            <Text className={`text-center font-medium ${formData.cardType === 'in_cart' ? 'text-blue-800' : 'text-gray-600'}`}>
                                 В корзине
                             </Text>
                         </TouchableOpacity>
@@ -189,11 +159,7 @@ const AddItemScreen: React.FC = () => {
 
                 {/* Теги */}
                 <View>
-                    <Text className="text-lg font-semibold text-gray-800 mb-2">
-                        Теги
-                    </Text>
-
-                    {/* Создание нового тега */}
+                    <Text className="text-lg font-semibold text-gray-800 mb-2">Теги</Text>
                     <View className="flex-row mb-4 space-x-2">
                         <TextInput
                             className="flex-1 bg-card rounded-lg px-4 py-2 border border-gray-200"
@@ -201,30 +167,16 @@ const AddItemScreen: React.FC = () => {
                             value={newTagName}
                             onChangeText={setNewTagName}
                         />
-                        <Button
-                            title="+"
-                            onPress={handleAddTag}
-                            variant="outline"
-                            size="sm"
-                            disabled={!newTagName.trim()}
-                        />
+                        <Button title="+" onPress={handleAddTag} variant="outline" size="sm" disabled={!newTagName.trim()} />
                     </View>
 
-                    {/* Список тегов */}
                     <View className="flex-row flex-wrap">
                         {tags.map((tag) => (
-                            <TouchableOpacity
-                                key={tag.id}
-                                onPress={() => toggleTag(tag.id)}
-                                className="mr-2 mb-2"
-                            >
-                                <Tag
-                                    tag={tag}
-                                    size="md"
-                                />
+                            <TouchableOpacity key={tag.id} onPress={() => toggleTag(tag.id)} className="mr-2 mb-2">
+                                <Tag tag={tag} size="md" />
                                 {selectedTags.includes(tag.id) && (
                                     <View className="absolute -top-1 -right-1 bg-primary rounded-full w-4 h-4 items-center justify-center">
-                                        <Text className="text-white text-xs">✓</Text>
+                                        <Text className="text-white text-xs">Checkmark</Text>
                                     </View>
                                 )}
                             </TouchableOpacity>
@@ -234,12 +186,10 @@ const AddItemScreen: React.FC = () => {
 
                 {/* Заметки */}
                 <View>
-                    <Text className="text-lg font-semibold text-gray-800 mb-2">
-                        Заметки
-                    </Text>
+                    <Text className="text-lg font-semibold text-gray-800 mb-2">Заметки</Text>
                     <TextInput
                         className="bg-card rounded-lg px-4 py-3 border border-gray-200 h-24"
-                        placeholder="Дополнительные заметки о вещи..."
+                        placeholder="Дополнительные заметки..."
                         value={formData.notes}
                         onChangeText={(text) => setFormData(prev => ({ ...prev, notes: text }))}
                         multiline
@@ -253,14 +203,12 @@ const AddItemScreen: React.FC = () => {
                     onPress={() => setFormData(prev => ({ ...prev, isFavorite: !prev.isFavorite }))}
                 >
                     <Text className={formData.isFavorite ? 'text-red-500 text-2xl mr-3' : 'text-gray-300 text-2xl mr-3'}>
-                        {formData.isFavorite ? '❤️' : '🤍'}
+                        {formData.isFavorite ? 'Heart' : 'Empty Heart'}
                     </Text>
-                    <Text className="text-lg font-semibold text-gray-800">
-                        Добавить в избранное
-                    </Text>
+                    <Text className="text-lg font-semibold text-gray-800">Добавить в избранное</Text>
                 </TouchableOpacity>
 
-                {/* Кнопка сохранения */}
+                {/* Кнопка */}
                 <Button
                     title="Добавить вещь"
                     onPress={handleSubmit}

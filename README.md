@@ -2,6 +2,8 @@
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
+---
+
 ## Get started
 
 1. Install dependencies
@@ -16,35 +18,281 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    npx expo start
    ```
 
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
-## Get a fresh project
+---
 
-When you're ready, run:
+# Документация: интеграция React Query
 
-```bash
-npm run reset-project
+В этом проекте внедрена библиотека React Query (@tanstack/react-query) для централизованной работы с сетевыми/локальными данными, кэширования и управления состояниями запросов.
+
+Ниже описан полный процесс интеграции, примеры кода «до/после», объяснения query keys, поведение кэша, мутаций, оптимистичных обновлений, настройка DevTools и рекомендации по тестированию.
+
+Содержание (quick links):
+- Процесс интеграции — шаги 2–9
+- Сравнение «до / после» (код и влияние на производительность)
+- Список query keys и логика
+- Примеры хуков и API
+- DevTools — как снимать скриншоты
+- Рекомендации и следующая задача
+
+---
+
+## 1. LAUNCH
+
+- Установка: `npm install`
+- Запуск: `npx expo start`
+- Команда для сброса проекта: `npm run reset-project`
+
+---
+
+## 2. Настройка QueryClient
+
+Что сделано:
+- Создан `QueryClient` с базовой глобальной конфигурацией
+- Обернули корень приложения в `QueryClientProvider`
+- Подключили React Query DevTools в режиме разработки
+- Установили глобальные опции: `staleTime`, `gcTime`/`cacheTime`, `retry`
+
+Пример (в проекте в `src/providers/QueryProvider.tsx`):
+
+- `staleTime: 10_000` (данные считаются свежими 10 сек)
+- `gcTime: 5 * 60_000` (в v4 параметр называется gcTime; эквивалент cacheTime — 5 минут)
+- `retry: 1` (одна повторная попытка)
+
+Зачем:
+- `staleTime` уменьшает число повторных запросов при быстрых переходах между экранами
+- `gcTime`/`cacheTime` влияет на то, как долго данные хранятся в памяти
+- `retry` — баланс между UX и ненужным трёхкратным повтором
+
+Где смотреть: `src/providers/QueryProvider.tsx`.
+
+---
+
+## 3. Замена useEffect на useQuery
+
+Что искать и менять:
+1. Найдите компоненты, которые получали данные через `useEffect` + `setState`.
+2. Замените на `useQuery` с правильным `queryKey`.
+3. Обрабатывайте состояния `isLoading`, `isError`, `data`.
+4. Убедитесь, что кэширование работает: переключитесь между экранами и проверьте Network/DevTools — дублирующихся запросов стало меньше.
+
+Пример — до (useEffect):
+
+```tsx
+// до: получение данных в компоненте
+useEffect(() => {
+  let mounted = true;
+  fetchData().then(d => {
+    if (mounted) setItems(d.items);
+  });
+  return () => { mounted = false };
+}, []);
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+После (useQuery):
 
-## Learn more
+```tsx
+const { data: items, isLoading, isError } = useQuery({
+  queryKey: ['wardrobe'],
+  queryFn: fetchWardrobeData,
+  select: (d) => d.items,
+});
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+Преимущества:
+- Автоматическое управление кэшем
+- Повторный рендер только при изменении данных, а не при каждом mount
+- Легко настраиваемое поведение refetch (onFocus, onReconnect, interval)
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+В проекте минимум 3 компонента/хука уже переведены:
+- `src/hooks/useWardrobeData.ts` — полный источник данных гардероба (`['wardrobe']`)
+- `src/hooks/useItems.ts` — `select` для списка предметов
+- Компоненты экранов: `HomeScreen`, `ItemDetailScreen`, `AddItemScreen` используют эти хуки
 
-## Join the community
+---
 
-Join our community of developers creating universal apps.
+## 4. Создание кастомных хуков
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Что сделано:
+- Вынесены API функции в `src/api/wardrobeApi.ts` (fetch/save)
+- Созданы хуки в `src/hooks/`:
+  - `useWardrobeData` — основной query для всей структуры данных
+  - `useItems` — select для items + мутации add/update/delete/toggle
+  - `useWardrobeMutations` — оптимистичные мутации (toggleFavorite)
+
+Контракт хуков (кратко):
+- Вход: нет / аргументы для мутаций
+- Выход: { data, isLoading, isError, mutate callbacks }
+
+Расположение файлов:
+- `src/api/` — функции доступа к хранилищу
+- `src/hooks/` — хуки, использующие react-query
+
+---
+
+## 5. Реализация мутаций
+
+Требования и реализация:
+- Минимум 2 мутации: в проекте реализованы create (addItem) и update/delete/toggle
+- Обновление кэша: используем `queryClient.setQueryData` и `invalidateQueries`
+- Обработка ошибок: onError в мутациях и возврат пред. состояния при оптимистичной логике
+
+Пример простого create (в `useItems`):
+
+```ts
+const addItem = useMutation({
+  mutationFn: async (newItem) => { /* создаём и сетим в кэш */ },
+  onSuccess: () => queryClient.invalidateQueries(['wardrobe'])
+});
+```
+
+---
+
+## 6. Оптимистичные обновления
+
+Реализовано для toggle favorite в `useWardrobeMutations.ts`:
+- onMutate: отменяем запросы, сохраняем prevState, применяем оптимистичное изменение через `setQueryData`
+- onError: откатываем состояние из контекста
+- onSettled: `invalidateQueries` для синхронизации с локальным хранилищем
+
+Контракт оптимистичной мутации:
+- onMutate -> return context с previousData
+- onError -> restore
+- onSettled/onSuccess -> invalidate или setQueryData с реальными ответами
+
+Проверьте сценарии ошибок: при симуляции ошибки (в тестах или временной ошибке) UI будет откатён.
+
+---
+
+## 7. Продвинутые возможности
+
+Реализовано/рекомендовано:
+- Автообновление: `refetchInterval` в `useWardrobeData` (10 минут) для фоновой синхронизации
+- Dependent queries: использовать `enabled` для зависимых запросов (пример: загрузить профиль только если есть userId)
+- Prefetching: вызывайте `prefetchQuery` на навигационных хуках, чтобы ускорить UX
+- Поиск/фильтрация: использовать параметризованные query keys — `['wardrobe', { filter, q }]` или `['items', filter]` и опцию `enabled` для отложенного запуска
+
+Примеры:
+- Dependent query:
+```ts
+useQuery({ queryKey: ['profile', userId], queryFn: fetchProfile, enabled: Boolean(userId) })
+```
+- Prefetching:
+```ts
+queryClient.prefetchQuery(['wardrobe'], fetchWardrobeData)
+```
+
+---
+
+## 8. Тестирование и оптимизация
+
+Практики, которые использовались:
+- Используйте React Query DevTools для анализа активных и закешированных запросов
+- Network tab в DevTools: количество дублирующихся запросов уменьшилось после интеграции
+- Используйте `select` в `useQuery` чтобы возвращать только нужную часть данных (уменьшает re-renders)
+- Оптимизируйте `queryKey` (параметризуйте) для корректного кэширования
+
+Рекомендации для unit/integration тестов:
+- Мокаем `useQuery`/`useMutation` или `QueryClient` в тестах
+- Тестируем optimistic updates: мокаем задержку и ошибку, проверяем откат
+
+---
+
+## 9. Обработка ошибок
+
+Что сделано и рекомендовано:
+- Глобальная retry-логика через `QueryClient` (retry = 1)
+- Для критичных endpoint-ов можно настроить `retry: false` или кастомную стратегию
+- Добавьте fallback UI: компонент-оболочка для отображения ошибок (toasts / modal)
+- Тестирование offline: проверьте поведение с отключенной сетью (DevTools + эмулятор)
+
+---
+
+## Сравнение «до» и «после» интеграции
+
+Код:
+- До: локальный useEffect + setState в компонентах (повторение логики, управление loading/error вручную)
+- После: централизованный fetch в hooks + useQuery, мутации через useMutation, кэш в QueryClient
+
+Производительность и UX:
+- Меньше дублирующихся сетевых запросов (QueryClient кэширует и управляет staleTime)
+- Быстрее навигация между экранами — данные показываются из кэша
+- Стандартизированная обработка loading/error
+- Оптимистичные обновления улучшили отклик UI при изменении избранного
+
+Примеры метрик, которые можно измерить:
+- Число сетевых запросов при повторном открытии экрана — уменьшилось
+- Время до первого полезного рендера — при наличии placeholderData/кэша стало короче
+
+---
+
+## Используемые query keys и логика
+
+Ниже — текущие ключи в проекте и рекомендованные паттерны.
+
+Текущие ключи (реально используемые файлы в проекте):
+- `['wardrobe']` — единый источник правды для всех данных гардероба (items, tags, collections, settings)
+
+Рекомендованные расширения (для лучшей граничащей инвалидации):
+- `['wardrobe', 'items']` — список предметов
+- `['wardrobe', 'item', itemId]` — конкретный предмет
+- `['wardrobe', 'tags']` — список тегов
+- `['profile', userId]` — профиль (пример dependent query)
+
+Логика выбора ключей:
+- Используйте массивы для параметров (простые и детерминированные значения)
+- Старайтесь делить большие монолитные ключи на под-ключи если требуется частичная инвалидизация
+- Всегда включайте все параметры, влияющие на результат (filter, sort, page) в ключ
+
+---
+
+## Примеры файлов (где смотреть в проекте)
+
+- `src/providers/QueryProvider.tsx` — инициализация QueryClient и DevTools
+- `src/api/wardrobeApi.ts` — fetch/save функции
+- `src/hooks/useWardrobeData.ts` — основной query для гардероба (`['wardrobe']`)
+- `src/hooks/useItems.ts` — select items + add/update/delete/toggle
+- `src/hooks/useWardrobeMutations.ts` — оптимистичная мутация toggleFavorite
+
+---
+
+## DevTools: как сделать скриншоты с активными запросами
+
+1. Запустите приложение в режиме разработки (`npx expo start` / эмулятор).
+2. Убедитесь, что `__DEV__` включён и `ReactQueryDevtools` отображается (нижний правый угол).
+3. Откройте DevTools и переключитесь на вкладку "Queries".
+4. Выполните сценарии: открыть Home → открыть Item → добавить/изменить элемент → переключить favorite.
+5. Сделайте скриншоты активных и закешированных запросов.
+
+Рекомендуемые места для сохранения скриншотов (при добавлении в репозиторий):
+- `docs/screenshots/devtools-queries-home.png`
+- `docs/screenshots/devtools-queries-after-mutation.png`
+
+---
+
+## Работа с ошибками и симуляция
+
+- Для тестирования отката оптимистичных обновлений — искусственно выбросьте ошибку в mutationFn и проверьте, что UI откатился к предыдущему состоянию.
+- Проверьте поведение при отсутствии сети (эмулятор/DevTools → Offline).
+
+---
+
+## Рекомендации и следующие шаги
+
+- Разделить `['wardrobe']` на более мелкие ключи если у вас начнут часто меняться только части данных (items/tags/settings).
+- Добавить автоматические скриншоты (CI) при интеграционном тестировании — опционально.
+- Добавить несколько unit-тестов на оптимистичные мутации и rollback.
+
+---
+
+Если нужно, могу дополнительно:
+- Вставить реальные скриншоты DevTools в `docs/screenshots/` (пожалуйста, приложите их)
+- Автоматизировать prefetching в навигационных хуках
+- Разбить текущую структуру query keys по рекомендациям выше и изменить хуки
+
+
+---
+
+Автор: интеграция React Query — код и описания находятся в `src/providers/`, `src/hooks/`, `src/api/`.
+

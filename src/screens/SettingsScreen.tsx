@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import {
     View,
     Text,
@@ -6,32 +6,39 @@ import {
     Alert,
     Share,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { useApp } from '../context/AppContext';
-import { storage } from '../storage/asyncStorage';
+import {useNavigation} from '@react-navigation/native';
+import {useApp} from '../context/AppContext';
+import {storage} from '../storage/asyncStorage';
 import Button from '../components/Button';
+import {useItems} from '../hooks/useItems';
+import {useTags} from '../hooks/useTags';
 
 const SettingsScreen: React.FC = () => {
     const navigation = useNavigation();
-    const { items, tags, clearData } = useApp();
+    const {items} = useItems();
+    const {tags} = useTags();
+
+    const stats = {
+        totalItems: items.length,
+        favoriteItems: items.filter(i => i.isFavorite).length,
+        inCartItems: items.filter(i => i.cardType === 'in_cart').length,
+        totalTags: tags.length,
+    };
 
     const [isExporting, setIsExporting] = useState(false);
     const [isImporting, setIsImporting] = useState(false);
     const [isClearing, setIsClearing] = useState(false);
 
     const handleExportData = async () => {
+        setIsExporting(true);
         try {
-            setIsExporting(true);
             const jsonData = await storage.exportData();
-
-            // Поделиться данными
             await Share.share({
                 message: jsonData,
                 title: 'Экспорт данных гардероба',
             });
-        } catch (error) {
+        } catch (err) {
             Alert.alert('Ошибка', 'Не удалось экспортировать данные');
-            console.error(error);
         } finally {
             setIsExporting(false);
         }
@@ -41,7 +48,7 @@ const SettingsScreen: React.FC = () => {
         Alert.alert(
             'Импорт данных',
             'Эта функция будет доступна в следующей версии. Сейчас вы можете делиться данными через экспорт.',
-            [{ text: 'Понятно' }]
+            [{text: 'Понятно'}]
         );
     };
 
@@ -50,7 +57,7 @@ const SettingsScreen: React.FC = () => {
             'Очистка всех данных',
             'Вы уверены, что хотите удалить все данные? Это действие нельзя отменить.',
             [
-                { text: 'Отмена', style: 'cancel' },
+                {text: 'Отмена', style: 'cancel'},
                 {
                     text: 'Удалить все',
                     style: 'destructive',
@@ -58,7 +65,7 @@ const SettingsScreen: React.FC = () => {
                         try {
                             setIsClearing(true);
                             await storage.clearData();
-                            clearData(); // Теперь эта функция существует
+                            // clearData(); // TODO: add func
                             Alert.alert('Успех', 'Все данные удалены');
                             navigation.goBack();
                         } catch (error) {
@@ -73,16 +80,12 @@ const SettingsScreen: React.FC = () => {
         );
     };
 
-    const getStats = () => {
-        return {
-            totalItems: items.length,
-            favoriteItems: items.filter(item => item.isFavorite).length,
-            inCartItems: items.filter(item => item.cardType === 'in_cart').length,
-            totalTags: tags.length,
-        };
-    };
-
-    const stats = getStats();
+    // const stats = {
+    //     totalItems: items.length,
+    //     favoriteItems: items.filter(i => i.isFavorite).length,
+    //     inCartItems: items.filter(i => i.cardType === 'in_cart').length,
+    //     totalTags: tags.length,
+    // };
 
     return (
         <ScrollView className="flex-1 bg-background">
