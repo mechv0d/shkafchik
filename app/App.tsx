@@ -1,4 +1,5 @@
 import React from 'react';
+import { View, Text } from 'react-native';
 import {NavigationContainer, NavigationIndependentTree} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
@@ -43,26 +44,54 @@ const TabNavigator = () => {
             screenOptions={{
                 tabBarStyle: {
                     backgroundColor: '#FFFFFF',
-                    borderTopColor: '#E5E5E5',
+                    borderTopWidth: 0,
+                    elevation: 0,
+                    shadowOpacity: 0,
+                    height: 80,
+                    paddingBottom: 8,
+                    paddingTop: 8,
+                    borderTopLeftRadius: 20,
+                    borderTopRightRadius: 20,
+                    shadowColor: '#000',
+                    shadowOffset: {
+                        width: 0,
+                        height: -4,
+                    },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 8,
                 },
                 tabBarActiveTintColor: '#3B82F6',
-                tabBarInactiveTintColor: '#6B7280',
-                headerStyle: {
-                    backgroundColor: '#3B82F6',
-                },
-                headerTintColor: '#FFFFFF',
-                headerTitleStyle: {
+                tabBarInactiveTintColor: '#94A3B8',
+                tabBarLabelStyle: {
+                    fontSize: 12,
                     fontWeight: '600',
+                    marginTop: 4,
                 },
+                headerStyle: {
+                    backgroundColor: '#FFFFFF',
+                    elevation: 0,
+                    shadowOpacity: 0,
+                    borderBottomWidth: 1,
+                    borderBottomColor: '#F1F5F9',
+                },
+                headerTintColor: '#0F172A',
+                headerTitleStyle: {
+                    fontSize: 18,
+                    fontWeight: '700',
+                    color: '#0F172A',
+                },
+                headerShadowVisible: false,
             }}
         >
             <Tab.Screen
                 name="Home"
                 component={HomeScreen}
                 options={{
-                    title: 'Гардероб',
-                    tabBarIcon: ({color, size}) => (
-                        <TabBarIcon icon="👕" color={color} size={size}/>
+                    title: 'Мой гардероб',
+                    tabBarIcon: ({color, size, focused}) => (
+                        <View className={`items-center justify-center ${focused ? 'scale-110' : ''}`}>
+                            <Text className="text-2xl mb-1">{focused ? '👔' : '👕'}</Text>
+                        </View>
                     ),
                 }}
             />
@@ -71,8 +100,10 @@ const TabNavigator = () => {
                 component={SettingsScreen}
                 options={{
                     title: 'Настройки',
-                    tabBarIcon: ({color, size}) => (
-                        <TabBarIcon icon="⚙️" color={color} size={size}/>
+                    tabBarIcon: ({color, size, focused}) => (
+                        <View className={`items-center justify-center ${focused ? 'scale-110' : ''}`}>
+                            <Text className="text-2xl mb-1">{focused ? '⚙️' : '🔧'}</Text>
+                        </View>
                     ),
                 }}
             />
@@ -91,15 +122,23 @@ export default function App() {
                         <Stack.Navigator
                             screenOptions={{
                                 headerStyle: {
-                                    backgroundColor: '#3B82F6',
+                                    backgroundColor: '#FFFFFF',
+                                    elevation: 0,
+                                    shadowOpacity: 0,
+                                    borderBottomWidth: 1,
+                                    borderBottomColor: '#F1F5F9',
                                 },
-                                headerTintColor: '#FFFFFF',
+                                headerTintColor: '#0F172A',
                                 headerTitleStyle: {
-                                    fontWeight: '600',
+                                    fontSize: 18,
+                                    fontWeight: '700',
+                                    color: '#0F172A',
                                 },
+                                headerShadowVisible: false,
                                 contentStyle: {
-                                    backgroundColor: '#F9FAFB',
+                                    backgroundColor: '#FFFFFF',
                                 },
+                                animation: 'slide_from_right',
                             }}
                         >
                             <Stack.Screen
@@ -111,8 +150,17 @@ export default function App() {
                                 name="AddItem"
                                 component={AddItemScreen}
                                 options={{
-                                    title: 'Добавить вещь',
+                                    title: 'Новая вещь',
                                     presentation: 'modal',
+                                    headerStyle: {
+                                        backgroundColor: '#FFFFFF',
+                                    },
+                                    headerTintColor: '#0F172A',
+                                    headerTitleStyle: {
+                                        fontSize: 18,
+                                        fontWeight: '700',
+                                        color: '#0F172A',
+                                    },
                                 }}
                             />
                             <Stack.Screen
@@ -120,6 +168,15 @@ export default function App() {
                                 component={ItemDetailScreen}
                                 options={{
                                     title: 'Детали вещи',
+                                    headerStyle: {
+                                        backgroundColor: '#FFFFFF',
+                                    },
+                                    headerTintColor: '#0F172A',
+                                    headerTitleStyle: {
+                                        fontSize: 18,
+                                        fontWeight: '700',
+                                        color: '#0F172A',
+                                    },
                                 }}
                             />
                         </Stack.Navigator>

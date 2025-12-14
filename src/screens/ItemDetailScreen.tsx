@@ -1,17 +1,18 @@
-import React, { useState } from 'react';
-import {
-    View,
-    Text,
-    ScrollView,
-    Alert,
-    TouchableOpacity, // Добавляем этот импорт
-} from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '@/app/App';
-import { useApp } from '../context/AppContext';
+import React, { useState } from 'react';
+import {
+    Alert,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+import { RootStackParamList } from '../../app/App';
 import Button from '../components/Button';
 import Tag from '../components/Tag';
+import { useAppActions } from '../context/AppContext';
+import { useItem } from '../hooks/useItem';
 
 type ItemDetailScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'ItemDetail'>;
 
@@ -20,11 +21,18 @@ const ItemDetailScreen: React.FC = () => {
     const route = useRoute();
     const { itemId } = route.params as { itemId: string };
 
-    const { items, updateItem, deleteItem, toggleFavorite } = useApp();
-
-    const item = items.find(i => i.id === itemId);
+    const { updateItem, deleteItem, toggleFavorite } = useAppActions();
+    const { data: item, isLoading } = useItem(itemId);
 
     const [isEditing, setIsEditing] = useState(false);
+
+    if (isLoading) {
+        return (
+            <View className="flex-1 items-center justify-center">
+                <Text className="text-lg text-gray-600">Загрузка...</Text>
+            </View>
+        );
+    }
 
     if (!item) {
         return (

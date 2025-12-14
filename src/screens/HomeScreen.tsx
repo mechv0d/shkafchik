@@ -1,20 +1,19 @@
 // screens/HomeScreen.tsx
-import React, { useState, useMemo } from 'react';
-import {
-    View,
-    Text,
-    FlatList,
-    TouchableOpacity,
-    TextInput,
-    RefreshControl,
-} from 'react-native';
+import { useSearchItems } from "@/src/hooks/useSearchItems";
 import { useNavigation } from '@react-navigation/native';
-import { useItems } from '../hooks/useItems';
-import { useWardrobeData } from '../hooks/useWardrobeData'; // ← для refetch
-import Button from '../components/Button';
+import React, { useMemo, useState } from 'react';
+import {
+    ScrollView,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+import DataPersistenceTest from '../components/DataPersistenceTest';
 import EmptyState from '../components/EmptyState';
 import ItemCard from '../components/ItemCard';
-import {useSearchItems} from "@/src/hooks/useSearchItems";
+import { useItems } from '../hooks/useItems';
+import { useWardrobeData } from '../hooks/useWardrobeData'; // ← для refetch
 
 const HomeScreen: React.FC = () => {
     const navigation = useNavigation<any>();
@@ -26,11 +25,11 @@ const HomeScreen: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const { data: searchResults, isFetching } = useSearchItems(searchQuery);
 
-    const displayItems = searchQuery.length >= 2 ? searchResults : items;
+    const displayItems = searchQuery.length >= 2 ? searchResults || [] : items;
 
     // Фильтрация — теперь здесь, а не в useItems
     const filteredItems = useMemo(() => {
-        let filtered = items;
+        let filtered = displayItems;
 
         // Поиск
         if (searchQuery) {
@@ -65,79 +64,109 @@ const HomeScreen: React.FC = () => {
     }
 
     return (
-        <View className="flex-1 bg-background">
+        <ScrollView className="flex-1 bg-background" showsVerticalScrollIndicator={false}>
+            {/* Тест сохранения данных */}
+            <DataPersistenceTest />
 
             {/* Поиск */}
-            <View className="px-4 pt-4 pb-2">
-                <TextInput
-                    className="bg-card rounded-lg px-4 py-3 border border-gray-200"
-                    placeholder="Поиск по названию, заметкам..."
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                />
+            <View className="px-6 pt-6 pb-4">
+                <View className="relative">
+                    <TextInput
+                        className="input-modern text-base"
+                        placeholder="🔍 Поиск по названию, заметкам..."
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                    />
+                    {searchQuery.length > 0 && (
+                        <TouchableOpacity
+                            className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-secondary-200 rounded-full items-center justify-center"
+                            onPress={() => setSearchQuery('')}
+                        >
+                            <Text className="text-secondary-600 text-sm">✕</Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
             </View>
 
             {/* Фильтры */}
-            <View className="flex-row px-4 pb-2 space-x-2">
-                <TouchableOpacity
-                    className={`px-4 py-2 rounded-full ${activeFilter === 'all' ? 'bg-primary' : 'bg-gray-200'}`}
-                    onPress={() => setActiveFilter('all')}
+            <View className="px-6 pb-4">
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    className="flex-row"
+                    contentContainerStyle={{ paddingHorizontal: 0 }}
                 >
-                    <Text className={`font-medium ${activeFilter === 'all' ? 'text-white' : 'text-gray-700'}`}>
-                        Все ({items.length})
-                    </Text>
-                </TouchableOpacity>
+                    <TouchableOpacity
+                        className={`filter-chip ${activeFilter === 'all' ? 'filter-chip-active' : 'filter-chip-inactive'} px-4 py-2.5 rounded-2xl transition-all duration-200 mr-3`}
+                        onPress={() => setActiveFilter('all')}
+                        activeOpacity={0.8}
+                    >
+                        <Text className={`font-semibold ${activeFilter === 'all' ? 'text-white' : 'text-text-secondary'}`}>
+                            📋 Все ({items.length})
+                        </Text>
+                    </TouchableOpacity>
 
-                <TouchableOpacity
-                    className={`px-4 py-2 rounded-full ${activeFilter === 'favorites' ? 'bg-primary' : 'bg-gray-200'}`}
-                    onPress={() => setActiveFilter('favorites')}
-                >
-                    <Text className={`font-medium ${activeFilter === 'favorites' ? 'text-white' : 'text-gray-700'}`}>
-                        Избранное ({items.filter(i => i.isFavorite).length})
-                    </Text>
-                </TouchableOpacity>
+                    <TouchableOpacity
+                        className={`filter-chip ${activeFilter === 'favorites' ? 'filter-chip-active' : 'filter-chip-inactive'} px-4 py-2.5 rounded-2xl transition-all duration-200 mr-3`}
+                        onPress={() => setActiveFilter('favorites')}
+                        activeOpacity={0.8}
+                    >
+                        <Text className={`font-semibold ${activeFilter === 'favorites' ? 'text-white' : 'text-text-secondary'}`}>
+                            ❤️ Избранное ({items.filter(i => i.isFavorite).length})
+                        </Text>
+                    </TouchableOpacity>
 
-                <TouchableOpacity
-                    className={`px-4 py-2 rounded-full ${activeFilter === 'in_cart' ? 'bg-primary' : 'bg-gray-200'}`}
-                    onPress={() => setActiveFilter('in_cart')}
-                >
-                    <Text className={`font-medium ${activeFilter === 'in_cart' ? 'text-white' : 'text-gray-700'}`}>
-                        В корзине ({items.filter(i => i.cardType === 'in_cart').length})
-                    </Text>
-                </TouchableOpacity>
+                    <TouchableOpacity
+                        className={`filter-chip ${activeFilter === 'in_cart' ? 'filter-chip-active' : 'filter-chip-inactive'} px-4 py-2.5 rounded-2xl transition-all duration-200 mr-3`}
+                        onPress={() => setActiveFilter('in_cart')}
+                        activeOpacity={0.8}
+                    >
+                        <Text className={`font-semibold ${activeFilter === 'in_cart' ? 'text-white' : 'text-text-secondary'}`}>
+                            🛒 В корзине ({items.filter(i => i.cardType === 'in_cart').length})
+                        </Text>
+                    </TouchableOpacity>
+                </ScrollView>
             </View>
 
             {/* Список */}
-            <FlatList
-                data={filteredItems}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
-                    <ItemCard
-                        item={item}
-                        onPress={() => navigation.navigate('ItemDetail', { itemId: item.id })}
-                    />
-                )}
-                contentContainerClassName="p-4"
-                refreshControl={
-                    <RefreshControl refreshing={isFetching} onRefresh={() => refetch()} />
-                }
-                ListEmptyComponent={
-                    <View className="items-center py-8">
-                        <Text className="text-gray-500 text-lg">Ничего не найдено</Text>
+            <View className="px-6 pb-8">
+                {filteredItems.length > 0 ? (
+                    <View className="flex-row flex-wrap justify-between">
+                        {filteredItems.map((item, index) => (
+                            <View key={item.id} className="w-[48%] mb-4" style={{ animationDelay: `${index * 50}ms` }}>
+                                <ItemCard
+                                    item={item}
+                                    onPress={() => navigation.navigate('ItemDetail', { itemId: item.id })}
+                                />
+                            </View>
+                        ))}
                     </View>
-                }
-            />
+                ) : (
+                    <View className="items-center py-16">
+                        <View className="w-24 h-24 bg-secondary-100 rounded-full items-center justify-center mb-4">
+                            <Text className="text-4xl">🔍</Text>
+                        </View>
+                        <Text className="text-text-secondary text-lg font-semibold text-center mb-2">
+                            Ничего не найдено
+                        </Text>
+                        <Text className="text-text-tertiary text-sm text-center">
+                            Попробуйте изменить поисковый запрос или фильтры
+                        </Text>
+                    </View>
+                )}
+            </View>
 
             {/* FAB */}
-            <View className="absolute bottom-6 right-6">
-                <Button
-                    title="+"
+            <View className="items-center pb-8">
+                <TouchableOpacity
+                    className="fab-modern"
                     onPress={() => navigation.navigate('AddItem')}
-                    size="lg"
-                    className="w-14 h-14 rounded-full shadow-lg"
-                />
+                    activeOpacity={0.9}
+                >
+                    <Text className="text-white text-2xl font-bold">+</Text>
+                </TouchableOpacity>
             </View>
-        </View>
+        </ScrollView>
     );
 };
 

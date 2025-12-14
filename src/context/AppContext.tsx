@@ -1,7 +1,8 @@
 // src/context/AppContext.tsx
-import React, {createContext, useContext, ReactNode} from 'react';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
-import {Item, Tag, AppData} from '../types';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { createContext, ReactNode, useContext } from 'react';
+import { saveWardrobeData } from '../api/wardrobeApi';
+import { AppData, Item, Tag } from '../types';
 
 // Типы действий
 type AddItemData = Omit<Item, 'id' | 'createdAt' | 'updatedAt'>;
@@ -31,7 +32,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({children}) => {
 
     const addItem = useMutation({
         mutationFn: async (newItemData: AddItemData) => {
-            const current = queryClient.getQueryData<AppData>(['wardrobe']) ?? {items: [], tags: []};
+            const current = queryClient.getQueryData<AppData>(['wardrobe']) ?? {
+                items: [],
+                tags: [],
+                collections: [],
+                settings: { version: '1.0.0', lastBackup: null }
+            };
             const newItem: Item = {
                 ...newItemData,
                 id: generateId(),
@@ -40,8 +46,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({children}) => {
             };
             return {...current, items: [newItem, ...current.items]};
         },
-        onSuccess: (updatedData) => {
+        onSuccess: async (updatedData) => {
+            // Обновляем кэш
             queryClient.setQueryData(['wardrobe'], updatedData);
+            // Сохраняем в AsyncStorage
+            await saveWardrobeData(updatedData);
         },
     }).mutate;
 
@@ -56,8 +65,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({children}) => {
             );
             return {...current, items: updatedItems};
         },
-        onSuccess: (updatedData) => {
+        onSuccess: async (updatedData) => {
             queryClient.setQueryData(['wardrobe'], updatedData);
+            await saveWardrobeData(updatedData);
         },
     }).mutate;
 
@@ -70,8 +80,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({children}) => {
                 items: current.items.filter(item => item.id !== id),
             };
         },
-        onSuccess: (updatedData) => {
-            queryClient.setQueryData(['wardrobe'], updatedData);
+        onSuccess: async (updatedData) => {
+            if (updatedData) {
+                queryClient.setQueryData(['wardrobe'], updatedData);
+                await saveWardrobeData(updatedData);
+            }
         },
     }).mutate;
 
@@ -86,22 +99,31 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({children}) => {
             );
             return {...current, items: updatedItems};
         },
-        onSuccess: (updatedData) => {
-            queryClient.setQueryData(['wardrobe'], updatedData);
+        onSuccess: async (updatedData) => {
+            if (updatedData) {
+                queryClient.setQueryData(['wardrobe'], updatedData);
+                await saveWardrobeData(updatedData);
+            }
         },
     }).mutate;
 
     const addTag = useMutation({
         mutationFn: async (tagData: Omit<Tag, 'id'>) => {
-            const current = queryClient.getQueryData<AppData>(['wardrobe']) ?? {items: [], tags: []};
+            const current = queryClient.getQueryData<AppData>(['wardrobe']) ?? {
+                items: [],
+                tags: [],
+                collections: [],
+                settings: { version: '1.0.0', lastBackup: null }
+            };
             const newTag: Tag = {
                 ...tagData,
                 id: generateId(),
             };
             return {...current, tags: [...current.tags, newTag]};
         },
-        onSuccess: (updatedData) => {
+        onSuccess: async (updatedData) => {
             queryClient.setQueryData(['wardrobe'], updatedData);
+            await saveWardrobeData(updatedData);
         },
     }).mutate;
 

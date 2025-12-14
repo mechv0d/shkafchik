@@ -1,9 +1,8 @@
+import { useWardrobeMutations } from '@/src/hooks/useWardrobeMutations';
 import React from 'react';
-import { View, Text, TouchableOpacity, Image } from 'react-native';
-import { useAppActions } from '../context/AppContext';
+import { Image, Text, TouchableOpacity, View } from 'react-native';
 import { Item } from '../types';
 import Tag from './Tag';
-import {useWardrobeMutations} from "@/src/hooks/useWardrobeMutations";
 
 interface ItemCardProps {
     item: Item;
@@ -13,89 +12,114 @@ interface ItemCardProps {
 const ItemCard: React.FC<ItemCardProps> = ({ item, onPress }) => {
     const { toggleFavorite, isToggling } = useWardrobeMutations();
 
-
     const formatPrice = (price: number) => price > 0 ? price.toLocaleString('ru-RU') + ' ₽' : '—';
 
     const renderStars = (rating: number) => (
-        <View className="flex-row">
+        <View className="star-rating">
             {[1, 2, 3, 4, 5].map((star) => (
-                <Text key={star} className={star <= rating ? 'text-yellow-500' : 'text-gray-300'}>
-                    Star
+                <Text
+                    key={star}
+                    className={`text-sm ${star <= rating ? 'star-filled' : 'star-empty'}`}
+                >
+                    ★
                 </Text>
             ))}
         </View>
     );
 
+    const getStatusBadgeStyles = () => {
+        return item.cardType === 'purchased'
+            ? 'status-badge-purchased'
+            : 'status-badge-cart';
+    };
+
     return (
         <TouchableOpacity
-            className="bg-card rounded-lg p-4 mb-3 shadow-sm border border-gray-100"
+            className="card-elegant p-4 mb-4 animate-fade-in"
             onPress={onPress}
             disabled={isToggling}
+            activeOpacity={0.9}
         >
-            <View className="flex-row">
-                {/* Фото */}
-                <View className="w-20 h-20 bg-gray-100 rounded-lg items-center justify-center mr-4">
+            {/* Фото */}
+            <View className="relative mb-3">
+                <View className="w-full aspect-[4/3] bg-secondary-100 rounded-xl items-center justify-center overflow-hidden shadow-sm">
                     {item.photos.length > 0 ? (
-                        <Image source={{ uri: item.photos[0] }} className="w-full h-full rounded-lg" />
+                        <Image
+                            source={{ uri: item.photos[0] }}
+                            className="w-full h-full"
+                            resizeMode="cover"
+                        />
                     ) : (
-                        <Text className="text-gray-400 text-2xl">Clothing</Text>
+                        <Text className="text-secondary-400 text-4xl">👕</Text>
                     )}
                 </View>
 
-                {/* Инфо */}
-                <View className="flex-1">
-                    <View className="flex-row justify-between items-start mb-1">
-                        <Text className="text-lg font-semibold text-gray-800 flex-1 mr-2">
-                            {item.name}
-                        </Text>
-                        <TouchableOpacity onPress={() => toggleFavorite(item.id)}>
-                            <Text className={item.isFavorite ? 'text-red-500 text-xl' : 'text-gray-300 text-xl'}>
-                                {item.isFavorite ? 'FAV' : 'NOT FAV :('}
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
+                {/* Favorite indicator */}
+                <TouchableOpacity
+                    className="absolute top-2 right-2 w-7 h-7 bg-white rounded-full items-center justify-center shadow-md"
+                    onPress={() => toggleFavorite(item.id)}
+                    activeOpacity={0.7}
+                >
+                    <Text className={`text-sm ${item.isFavorite ? 'heart-filled' : 'heart-empty'}`}>
+                        {item.isFavorite ? '❤️' : '🤍'}
+                    </Text>
+                </TouchableOpacity>
 
-                    {item.price > 0 && (
-                        <Text className="text-primary font-medium text-base mb-1">
-                            {formatPrice(item.price)}
-                        </Text>
-                    )}
-
-                    {item.rating > 0 && <View className="mb-2">{renderStars(item.rating)}</View>}
-
-                    {item.purchasePlace && (
-                        <Text className="text-gray-600 text-sm mb-2">
-                            Куплено в: {item.purchasePlace}
-                        </Text>
-                    )}
-
-                    {/* Теги */}
-                    {item.tags.length > 0 && (
-                        <View className="flex-row flex-wrap">
-                            {item.tags.slice(0, 3).map((tag) => (
-                                <View key={tag.id} className="mr-1 mb-1">
-                                    <Tag tag={tag} size="sm" />
-                                </View>
-                            ))}
-                            {item.tags.length > 3 && (
-                                <View className="bg-gray-200 px-2 py-1 rounded-full">
-                                    <Text className="text-gray-600 text-xs">+{item.tags.length - 3}</Text>
-                                </View>
-                            )}
-                        </View>
-                    )}
-
-                    {/* Бейдж */}
-                    <View className={`absolute top-2 right-2 px-2 py-1 rounded-full ${
-                        item.cardType === 'purchased' ? 'bg-green-100' : 'bg-blue-100'
-                    }`}>
-                        <Text className={`text-xs font-medium ${
-                            item.cardType === 'purchased' ? 'text-green-800' : 'text-blue-800'
-                        }`}>
-                            {item.cardType === 'purchased' ? 'Куплено' : 'В корзине'}
-                        </Text>
-                    </View>
+                {/* Статус бейдж */}
+                <View className={`absolute top-2 left-2 px-2 py-1 rounded-full border ${getStatusBadgeStyles()}`}>
+                    <Text className="text-xs font-bold">
+                        {item.cardType === 'purchased' ? '✓' : '•'}
+                    </Text>
                 </View>
+            </View>
+
+            {/* Инфо */}
+            <View className="flex-1">
+                <Text
+                    className="text-sm font-bold text-text-primary mb-1 leading-5"
+                    numberOfLines={2}
+                >
+                    {item.name}
+                </Text>
+
+                {item.price > 0 && (
+                    <Text className="text-primary-600 font-bold text-sm mb-2">
+                        {formatPrice(item.price)}
+                    </Text>
+                )}
+
+                {item.rating > 0 && (
+                    <View className="mb-2">
+                        {renderStars(item.rating)}
+                    </View>
+                )}
+
+                {item.purchasePlace && (
+                    <View className="flex-row items-center mb-2">
+                        <Text className="text-text-secondary text-xs mr-1">🏪</Text>
+                        <Text className="text-text-secondary text-xs flex-1" numberOfLines={1}>
+                            {item.purchasePlace}
+                        </Text>
+                    </View>
+                )}
+
+                {/* Теги */}
+                {item.tags.length > 0 && (
+                    <View className="flex-row flex-wrap">
+                        {item.tags.slice(0, 1).map((tag) => (
+                            <View key={tag.id} className="mr-1 mb-1">
+                                <Tag tag={tag} size="sm" variant="subtle" />
+                            </View>
+                        ))}
+                        {item.tags.length > 1 && (
+                            <View className="bg-secondary-100 px-1.5 py-0.5 rounded-full border border-secondary-200">
+                                <Text className="text-secondary-600 text-xs font-medium">
+                                    +{item.tags.length - 1}
+                                </Text>
+                            </View>
+                        )}
+                    </View>
+                )}
             </View>
         </TouchableOpacity>
     );

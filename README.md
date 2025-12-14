@@ -105,10 +105,15 @@ const { data: items, isLoading, isError } = useQuery({
 - Повторный рендер только при изменении данных, а не при каждом mount
 - Легко настраиваемое поведение refetch (onFocus, onReconnect, interval)
 
-В проекте минимум 3 компонента/хука уже переведены:
+В проекте минимум 3 useQuery хуков уже переведены:
 - `src/hooks/useWardrobeData.ts` — полный источник данных гардероба (`['wardrobe']`)
 - `src/hooks/useItems.ts` — `select` для списка предметов
-- Компоненты экранов: `HomeScreen`, `ItemDetailScreen`, `AddItemScreen` используют эти хуки
+- `src/hooks/useTags.ts` — `select` для списка тегов
+- `src/hooks/useSearchItems.ts` — параметризованный поиск с `enabled`
+- `src/hooks/useStats.ts` — статистика приложения (`['stats']`)
+- `src/hooks/useItem.ts` — получение одной вещи по ID (`['item', itemId]`)
+- `src/hooks/useSettings.ts` — настройки приложения (`['settings']`)
+- Компоненты экранов: `HomeScreen`, `ItemDetailScreen`, `AddItemScreen`, `SettingsScreen` используют эти хуки
 
 ---
 
@@ -133,17 +138,39 @@ const { data: items, isLoading, isError } = useQuery({
 
 ## 5. Реализация мутаций
 
-Требования и реализация:
-- Минимум 2 мутации: в проекте реализованы create (addItem) и update/delete/toggle
-- Обновление кэша: используем `queryClient.setQueryData` и `invalidateQueries`
-- Обработка ошибок: onError в мутациях и возврат пред. состояния при оптимистичной логике
+В проекте реализованы следующие мутации для управления данными гардероба:
 
-Пример простого create (в `useItems`):
+### Основные мутации (в `src/context/AppContext.tsx`):
+- **`addItem`** - создание новой вещи (create)
+- **`updateItem`** - обновление существующей вещи (update)
+- **`deleteItem`** - удаление вещи (delete)
+- **`toggleFavorite`** - переключение статуса "избранное"
+- **`addTag`** - добавление нового тега
 
-```ts
-const addItem = useMutation({
-  mutationFn: async (newItem) => { /* создаём и сетим в кэш */ },
-  onSuccess: () => queryClient.invalidateQueries(['wardrobe'])
+### Дополнительные мутации (в `src/hooks/useItems.ts`):
+- **`updateItem`** - обновление вещи через хук
+- **`deleteItem`** - удаление вещи через хук
+- **`toggleFavorite`** - переключение избранного через хук
+
+### Оптимистичные мутации (в `src/hooks/useWardrobeMutations.ts`):
+- **`toggleFavorite`** - оптимистичное переключение избранного с мгновенным UI-обновлением
+
+### Обновление кэша:
+- Используем `queryClient.setQueryData` для мгновенного обновления UI
+- `invalidateQueries` для синхронизации с AsyncStorage после успешных операций
+- Обработка ошибок с откатом состояния при неудачных мутациях
+
+Пример использования мутации в компоненте:
+
+```tsx
+const { addItem } = useAppActions();
+
+// В обработчике формы
+addItem({
+  name: "Новая футболка",
+  price: 2500,
+  tags: [...],
+  // ... остальные поля
 });
 ```
 

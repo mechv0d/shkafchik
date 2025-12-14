@@ -1,29 +1,25 @@
-import React, {useState} from 'react';
+import { useNavigation } from '@react-navigation/native';
+import React, { useState } from 'react';
 import {
-    View,
-    Text,
-    ScrollView,
     Alert,
+    ScrollView,
     Share,
+    Text,
+    View,
 } from 'react-native';
-import {useNavigation} from '@react-navigation/native';
-import {useApp} from '../context/AppContext';
-import {storage} from '../storage/asyncStorage';
 import Button from '../components/Button';
-import {useItems} from '../hooks/useItems';
-import {useTags} from '../hooks/useTags';
+import { useItems } from '../hooks/useItems';
+import { useSettings } from '../hooks/useSettings';
+import { useStats } from '../hooks/useStats';
+import { useTags } from '../hooks/useTags';
+import { storage } from '../storage/asyncStorage';
 
 const SettingsScreen: React.FC = () => {
     const navigation = useNavigation();
     const {items} = useItems();
     const {tags} = useTags();
-
-    const stats = {
-        totalItems: items.length,
-        favoriteItems: items.filter(i => i.isFavorite).length,
-        inCartItems: items.filter(i => i.cardType === 'in_cart').length,
-        totalTags: tags.length,
-    };
+    const { data: stats, isLoading: statsLoading } = useStats();
+    const { data: settings } = useSettings();
 
     const [isExporting, setIsExporting] = useState(false);
     const [isImporting, setIsImporting] = useState(false);
@@ -93,24 +89,40 @@ const SettingsScreen: React.FC = () => {
                 {/* Статистика */}
                 <View className="bg-card rounded-lg p-4 border border-gray-200">
                     <Text className="text-xl font-bold text-gray-800 mb-4">Статистика</Text>
-                    <View className="space-y-2">
-                        <View className="flex-row justify-between">
-                            <Text className="text-gray-600">Всего вещей:</Text>
-                            <Text className="font-semibold">{stats.totalItems}</Text>
+                    {statsLoading ? (
+                        <Text className="text-gray-600">Загрузка статистики...</Text>
+                    ) : (
+                        <View className="space-y-2">
+                            <View className="flex-row justify-between">
+                                <Text className="text-gray-600">Всего вещей:</Text>
+                                <Text className="font-semibold">{stats?.totalItems || 0}</Text>
+                            </View>
+                            <View className="flex-row justify-between">
+                                <Text className="text-gray-600">В избранном:</Text>
+                                <Text className="font-semibold text-red-500">{stats?.favoriteItems || 0}</Text>
+                            </View>
+                            <View className="flex-row justify-between">
+                                <Text className="text-gray-600">В корзине:</Text>
+                                <Text className="font-semibold text-blue-500">{stats?.inCartItems || 0}</Text>
+                            </View>
+                            <View className="flex-row justify-between">
+                                <Text className="text-gray-600">Куплено:</Text>
+                                <Text className="font-semibold text-green-500">{stats?.purchasedItems || 0}</Text>
+                            </View>
+                            <View className="flex-row justify-between">
+                                <Text className="text-gray-600">Общая стоимость:</Text>
+                                <Text className="font-semibold">{stats?.totalValue ? stats.totalValue.toLocaleString('ru-RU') + ' ₽' : '0 ₽'}</Text>
+                            </View>
+                            <View className="flex-row justify-between">
+                                <Text className="text-gray-600">Средний рейтинг:</Text>
+                                <Text className="font-semibold">⭐ {stats?.averageRating || 0}/5</Text>
+                            </View>
+                            <View className="flex-row justify-between">
+                                <Text className="text-gray-600">Тегов:</Text>
+                                <Text className="font-semibold">{stats?.totalTags || 0}</Text>
+                            </View>
                         </View>
-                        <View className="flex-row justify-between">
-                            <Text className="text-gray-600">В избранном:</Text>
-                            <Text className="font-semibold text-red-500">{stats.favoriteItems}</Text>
-                        </View>
-                        <View className="flex-row justify-between">
-                            <Text className="text-gray-600">В корзине:</Text>
-                            <Text className="font-semibold text-blue-500">{stats.inCartItems}</Text>
-                        </View>
-                        <View className="flex-row justify-between">
-                            <Text className="text-gray-600">Тегов:</Text>
-                            <Text className="font-semibold">{stats.totalTags}</Text>
-                        </View>
-                    </View>
+                    )}
                 </View>
 
                 {/* Управление данными */}
@@ -144,7 +156,13 @@ const SettingsScreen: React.FC = () => {
                     <View className="space-y-2">
                         <View className="flex-row justify-between">
                             <Text className="text-gray-600">Версия:</Text>
-                            <Text className="font-semibold">1.0.0</Text>
+                            <Text className="font-semibold">{settings?.version || '1.0.0'}</Text>
+                        </View>
+                        <View className="flex-row justify-between">
+                            <Text className="text-gray-600">Последний бэкап:</Text>
+                            <Text className="font-semibold">
+                                {settings?.lastBackup ? settings.lastBackup.toLocaleDateString('ru-RU') : 'Не было'}
+                            </Text>
                         </View>
                         <View className="flex-row justify-between">
                             <Text className="text-gray-600">Разработчик:</Text>
