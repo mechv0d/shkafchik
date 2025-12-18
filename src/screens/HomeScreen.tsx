@@ -7,14 +7,20 @@ import DataPersistenceTest from '../components/DataPersistenceTest';
 import { EmptyState } from '@/src/shared/ui/emptyState';
 import { ItemCard } from '@/src/shared/ui/itemCard';
 import { useItems } from '../hooks/useItems';
+import { useUI } from '../store/hooks/useUI';
+import { useItems as useReduxItems } from '../store/hooks/useItems';
+import { ReduxTest } from '../components/ReduxTest';
 
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { items, isLoading } = useItems();
 
+  // Redux hooks
+  const { searchQuery, setSearchQuery } = useUI();
+  const reduxItems = useReduxItems();
+
   const [activeFilter, setActiveFilter] = useState<'all' | 'favorites' | 'in_cart'>('all');
 
-  const [searchQuery, setSearchQuery] = useState('');
   const { data: searchResults } = useSearchItems(searchQuery);
 
   const displayItems = useMemo(
@@ -22,11 +28,11 @@ const HomeScreen: React.FC = () => {
     [searchQuery, searchResults, items]
   );
 
-  // Фильтрация — теперь здесь, а не в useItems
+  // Фильтрация с использованием Redux состояния
   const filteredItems = useMemo(() => {
     let filtered = displayItems;
 
-    // Поиск
+    // Поиск через Redux
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       filtered = filtered.filter(
@@ -44,8 +50,16 @@ const HomeScreen: React.FC = () => {
       filtered = filtered.filter(item => item.cardType === 'in_cart');
     }
 
+    // Применение Redux фильтров
+    if (reduxItems.filters.cardType) {
+      filtered = filtered.filter(item => item.cardType === reduxItems.filters.cardType);
+    }
+    if (reduxItems.filters.favorite) {
+      filtered = filtered.filter(item => item.isFavorite);
+    }
+
     return filtered;
-  }, [displayItems, activeFilter, searchQuery]);
+  }, [displayItems, activeFilter, searchQuery, reduxItems.filters]);
 
   // Пустое состояние
   if (!isLoading && items.length === 0) {
@@ -61,6 +75,9 @@ const HomeScreen: React.FC = () => {
 
   return (
     <ScrollView className="flex-1 bg-background" showsVerticalScrollIndicator={false}>
+      {/* Redux Test Component */}
+      <ReduxTest />
+
       {/* Тест сохранения данных */}
       <DataPersistenceTest />
 

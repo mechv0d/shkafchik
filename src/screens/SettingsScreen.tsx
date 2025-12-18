@@ -2,15 +2,19 @@ import { Button } from '@/src/shared/ui/button';
 import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
 import { Alert, ScrollView, Share, Text, View } from 'react-native';
-import { useSettings } from '../hooks/useSettings';
+import { useSettings as useContextSettings } from '../hooks/useSettings';
 import { useStats } from '../hooks/useStats';
+import { useSettings as useReduxSettings } from '../store/hooks/useSettings';
 import { storage } from '../shared/lib/storage/asyncStorage';
 import { getAppVersion } from '../shared/utils/version';
 
 const SettingsScreen: React.FC = () => {
   const navigation = useNavigation();
   const { data: stats, isLoading: statsLoading } = useStats();
-  const { data: settings } = useSettings();
+  const { data: settings } = useContextSettings();
+
+  // Redux hooks для управления настройками
+  const reduxSettings = useReduxSettings();
 
   const [isExporting, setIsExporting] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
@@ -139,6 +143,87 @@ const SettingsScreen: React.FC = () => {
               loading={isClearing}
               variant="secondary"
             />
+          </View>
+        </View>
+
+        {/* Redux настройки */}
+        <View className="bg-card rounded-lg p-4 border border-gray-200">
+          <Text className="text-xl font-bold text-gray-800 mb-4">Настройки интерфейса</Text>
+          <View className="space-y-3">
+            <View className="flex-row justify-between items-center">
+              <Text className="text-gray-600">Показывать цены</Text>
+              <Button
+                title={reduxSettings.showPrices ? 'Включено' : 'Выключено'}
+                onPress={reduxSettings.toggleShowPrices}
+                variant={reduxSettings.showPrices ? 'primary' : 'outline'}
+                size="sm"
+              />
+            </View>
+            <View className="flex-row justify-between items-center">
+              <Text className="text-gray-600">Показывать рейтинги</Text>
+              <Button
+                title={reduxSettings.showRatings ? 'Включено' : 'Выключено'}
+                onPress={reduxSettings.toggleShowRatings}
+                variant={reduxSettings.showRatings ? 'primary' : 'outline'}
+                size="sm"
+              />
+            </View>
+            <View className="flex-row justify-between items-center">
+              <Text className="text-gray-600">Компактный вид</Text>
+              <Button
+                title={reduxSettings.compactView ? 'Включено' : 'Выключено'}
+                onPress={reduxSettings.toggleCompactView}
+                variant={reduxSettings.compactView ? 'primary' : 'outline'}
+                size="sm"
+              />
+            </View>
+            <View className="flex-row justify-between items-center">
+              <Text className="text-gray-600">Уведомления</Text>
+              <Button
+                title={reduxSettings.notificationsEnabled ? 'Включены' : 'Выключены'}
+                onPress={reduxSettings.toggleNotifications}
+                variant={reduxSettings.notificationsEnabled ? 'primary' : 'outline'}
+                size="sm"
+              />
+            </View>
+            <View className="flex-row justify-between items-center">
+              <Text className="text-gray-600">Тактильная обратная связь</Text>
+              <Button
+                title={reduxSettings.hapticFeedback ? 'Включена' : 'Выключена'}
+                onPress={reduxSettings.toggleHapticFeedback}
+                variant={reduxSettings.hapticFeedback ? 'primary' : 'outline'}
+                size="sm"
+              />
+            </View>
+            <View className="flex-row justify-between items-center">
+              <Text className="text-gray-600">Автобэкап</Text>
+              <Button
+                title={reduxSettings.autoBackup ? 'Включен' : 'Выключен'}
+                onPress={reduxSettings.toggleAutoBackup}
+                variant={reduxSettings.autoBackup ? 'primary' : 'outline'}
+                size="sm"
+              />
+            </View>
+            <View className="pt-2">
+              <Button
+                title="Сбросить настройки"
+                onPress={() => {
+                  Alert.alert(
+                    'Сброс настроек',
+                    'Вернуть настройки интерфейса к значениям по умолчанию?',
+                    [
+                      { text: 'Отмена', style: 'cancel' },
+                      {
+                        text: 'Сбросить',
+                        style: 'destructive',
+                        onPress: reduxSettings.resetSettings,
+                      },
+                    ]
+                  );
+                }}
+                variant="secondary"
+              />
+            </View>
           </View>
         </View>
 

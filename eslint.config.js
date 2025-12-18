@@ -19,13 +19,12 @@ module.exports = defineConfig([
       // Правила именования для FSD архитектуры
       '@typescript-eslint/naming-convention': [
         'error',
-        // Компоненты React (PascalCase)
+        // Компоненты React (PascalCase) — любые переменные, начинающиеся с заглавной буквы
         {
           selector: 'variable',
           format: ['PascalCase'],
           filter: {
-            regex:
-              '^(Component|Provider|Screen|Form|Modal|Button|Input|Card|Context|Navigator|TabBarIcon|DataPersistenceTest|EmptyState|ItemCard|TagComponent|AddItemScreen|HomeScreen|ItemDetailScreen|SettingsScreen|Tag|SearchInput)$',
+            regex: '^[A-Z][a-zA-Z0-9]*$',
             match: true,
           },
         },

@@ -10,7 +10,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
+import { Provider } from 'react-redux';
 import { Text, View } from 'react-native';
+import { store } from '../store/store';
+import { ErrorBoundary } from '../shared/ui/errorBoundary/ErrorBoundary';
+import { GlobalErrorDisplay } from '../shared/ui/errorBoundary/GlobalErrorDisplay';
 
 export type RootStackParamList = {
   MainTabs: undefined;
@@ -110,73 +114,80 @@ const TabNavigator = () => {
 
 export default function App() {
   return (
-    // 🟢 Оборачиваем все приложение в QueryProvider
-    <QueryClientProvider client={queryClient}>
-      <AppProvider>
-        <NavigationIndependentTree>
-          <NavigationContainer>
-            <StatusBar style="auto" />
-            <Stack.Navigator
-              screenOptions={{
-                headerStyle: {
-                  backgroundColor: '#FFFFFF',
-                },
-                headerTintColor: '#0F172A',
-                headerTitleStyle: {
-                  fontSize: 18,
-                  fontWeight: '700',
-                  color: '#0F172A',
-                },
-                headerShadowVisible: false,
-                contentStyle: {
-                  backgroundColor: '#FFFFFF',
-                },
-                animation: 'slide_from_right',
-              }}
-            >
-              <Stack.Screen
-                name="MainTabs"
-                component={TabNavigator}
-                options={{ headerShown: false }}
-              />
-              <Stack.Screen
-                name="AddItem"
-                component={AddItemScreen}
-                options={{
-                  title: 'Новая вещь',
-                  presentation: 'modal',
-                  headerStyle: {
-                    backgroundColor: '#FFFFFF',
-                  },
-                  headerTintColor: '#0F172A',
-                  headerTitleStyle: {
-                    fontSize: 18,
-                    fontWeight: '700',
-                    color: '#0F172A',
-                  },
-                }}
-              />
-              <Stack.Screen
-                name="ItemDetail"
-                component={ItemDetailScreen}
-                options={{
-                  title: 'Детали вещи',
-                  headerStyle: {
-                    backgroundColor: '#FFFFFF',
-                  },
-                  headerTintColor: '#0F172A',
-                  headerTitleStyle: {
-                    fontSize: 18,
-                    fontWeight: '700',
-                    color: '#0F172A',
-                  },
-                }}
-              />
-            </Stack.Navigator>
-          </NavigationContainer>
-        </NavigationIndependentTree>
-      </AppProvider>
-      <ReactQueryDevtools initialIsOpen={false} />
-    </QueryClientProvider>
+    // 🟢 Оборачиваем все приложение в ErrorBoundary
+    <ErrorBoundary>
+      {/* 🟢 Оборачиваем все приложение в Redux Provider */}
+      <Provider store={store}>
+        {/* 🟢 Оборачиваем все приложение в QueryProvider */}
+        <QueryClientProvider client={queryClient}>
+          <AppProvider>
+            <NavigationIndependentTree>
+              <NavigationContainer>
+                <StatusBar style="auto" />
+                <Stack.Navigator
+                  screenOptions={{
+                    headerStyle: {
+                      backgroundColor: '#FFFFFF',
+                    },
+                    headerTintColor: '#0F172A',
+                    headerTitleStyle: {
+                      fontSize: 18,
+                      fontWeight: '700',
+                      color: '#0F172A',
+                    },
+                    headerShadowVisible: false,
+                    contentStyle: {
+                      backgroundColor: '#FFFFFF',
+                    },
+                    animation: 'slide_from_right',
+                  }}
+                >
+                  <Stack.Screen
+                    name="MainTabs"
+                    component={TabNavigator}
+                    options={{ headerShown: false }}
+                  />
+                  <Stack.Screen
+                    name="AddItem"
+                    component={AddItemScreen}
+                    options={{
+                      title: 'Новая вещь',
+                      presentation: 'modal',
+                      headerStyle: {
+                        backgroundColor: '#FFFFFF',
+                      },
+                      headerTintColor: '#0F172A',
+                      headerTitleStyle: {
+                        fontSize: 18,
+                        fontWeight: '700',
+                        color: '#0F172A',
+                      },
+                    }}
+                  />
+                  <Stack.Screen
+                    name="ItemDetail"
+                    component={ItemDetailScreen}
+                    options={{
+                      title: 'Детали вещи',
+                      headerStyle: {
+                        backgroundColor: '#FFFFFF',
+                      },
+                      headerTintColor: '#0F172A',
+                      headerTitleStyle: {
+                        fontSize: 18,
+                        fontWeight: '700',
+                        color: '#0F172A',
+                      },
+                    }}
+                  />
+                </Stack.Navigator>
+              </NavigationContainer>
+            </NavigationIndependentTree>
+            <GlobalErrorDisplay />
+          </AppProvider>
+          <ReactQueryDevtools initialIsOpen={false} />
+        </QueryClientProvider>
+      </Provider>
+    </ErrorBoundary>
   );
 }
