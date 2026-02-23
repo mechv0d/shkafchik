@@ -1,12 +1,12 @@
-import { Button } from '@/src/shared/ui/button';
+import { Button } from '@/src/components/ui/button';
 import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
 import { Alert, ScrollView, Share, Text, View } from 'react-native';
 import { useSettings as useContextSettings } from '../hooks/useSettings';
 import { useStats } from '../hooks/useStats';
+import { storage } from '../lib/storage/asyncStorage';
 import { useSettings as useReduxSettings } from '../store/hooks/useSettings';
-import { storage } from '../shared/lib/storage/asyncStorage';
-import { getAppVersion } from '../shared/utils/version';
+import { getAppVersion } from '../utils/version';
 
 const SettingsScreen: React.FC = () => {
   const navigation = useNavigation();

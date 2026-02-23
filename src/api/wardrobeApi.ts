@@ -1,5 +1,5 @@
 // src/api/wardrobeApi.ts
-import { storage } from '../shared/lib/storage/asyncStorage';
+import { storage } from '../lib/storage/asyncStorage';
 import { AppData } from '../types';
 
 // Базовая функция загрузки всех данных

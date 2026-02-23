@@ -1,8 +1,8 @@
+import { Button } from '@/src/components/ui/button';
+import { Tag } from '@/src/components/ui/tag';
 import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
 import { Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { Button } from '@/src/shared/ui/button';
-import { Tag } from '@/src/shared/ui/tag';
 import { useAppActions } from '../context/AppContext';
 import { useTags } from '../hooks/useTags';
 import { CardType } from '../types';

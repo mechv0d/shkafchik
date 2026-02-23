@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { Item } from '../../shared/types';
+import { Item } from '../../types';
 
 interface ItemsState {
   // Фильтры и сортировка

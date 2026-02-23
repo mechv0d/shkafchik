@@ -1,7 +1,9 @@
 import { AppProvider } from '@/src/context/AppContext';
 import AddItemScreen from '@/src/screens/AddItemScreen';
+import CategoriesScreen from '@/src/screens/CategoriesScreen';
 import HomeScreen from '@/src/screens/HomeScreen';
 import ItemDetailScreen from '@/src/screens/ItemDetailScreen';
+import SearchScreen from '@/src/screens/SearchScreen';
 import SettingsScreen from '@/src/screens/SettingsScreen';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer, NavigationIndependentTree } from '@react-navigation/native';
@@ -11,10 +13,15 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
 import { Provider } from 'react-redux';
-import { Text, View } from 'react-native';
+import { AnimatedTabIcon } from '../components/icons/AnimatedTabIcon';
+import { HangerIcon } from '../components/icons/HangerIcon';
+import { LookDownIcon } from '../components/icons/LookDownIcon';
+import { PlusIcon } from '../components/icons/PlusIcon';
+import { ProfileIcon } from '../components/icons/ProfileIcon';
+import { SearchIcon } from '../components/icons/SearchIcon';
+import { ErrorBoundary } from '../components/ui/errorBoundary/ErrorBoundary';
+import { GlobalErrorDisplay } from '../components/ui/errorBoundary/GlobalErrorDisplay';
 import { store } from '../store/store';
-import { ErrorBoundary } from '../shared/ui/errorBoundary/ErrorBoundary';
-import { GlobalErrorDisplay } from '../shared/ui/errorBoundary/GlobalErrorDisplay';
 
 export type RootStackParamList = {
   MainTabs: undefined;
@@ -23,8 +30,11 @@ export type RootStackParamList = {
 };
 
 export type TabParamList = {
-  Home: undefined;
-  Settings: undefined;
+  Wardrobe: undefined;
+  Search: undefined;
+  Add: undefined;
+  Categories: undefined;
+  Profile: undefined;
 };
 
 const queryClient = new QueryClient({
@@ -48,9 +58,9 @@ const TabNavigator = () => {
           backgroundColor: '#FFFFFF',
           borderTopWidth: 0,
           elevation: 0,
-          height: 80,
-          paddingBottom: 8,
-          paddingTop: 8,
+          height: 50,
+          paddingBottom: 4,
+          paddingTop: 4,
           borderTopLeftRadius: 20,
           borderTopRightRadius: 20,
           shadowColor: '#000',
@@ -63,11 +73,7 @@ const TabNavigator = () => {
         },
         tabBarActiveTintColor: '#3B82F6',
         tabBarInactiveTintColor: '#94A3B8',
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '600',
-          marginTop: 4,
-        },
+        tabBarShowLabel: false,
         headerStyle: {
           backgroundColor: '#FFFFFF',
           elevation: 0,
@@ -85,26 +91,52 @@ const TabNavigator = () => {
       }}
     >
       <Tab.Screen
-        name="Home"
+        name="Wardrobe"
         component={HomeScreen}
         options={{
-          title: 'Мой гардероб',
+          title: 'Гардероб',
           tabBarIcon: ({ focused }) => (
-            <View className={`items-center justify-center ${focused ? 'scale-110' : ''}`}>
-              <Text className="text-2xl mb-1">{focused ? '👔' : '👕'}</Text>
-            </View>
+            <AnimatedTabIcon iconComponent={HangerIcon} focused={focused} />
           ),
         }}
       />
       <Tab.Screen
-        name="Settings"
+        name="Search"
+        component={SearchScreen}
+        options={{
+          title: 'Поиск',
+          tabBarIcon: ({ focused }) => (
+            <AnimatedTabIcon iconComponent={SearchIcon} focused={focused} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Add"
+        component={AddItemScreen}
+        options={{
+          title: 'Добавить',
+          tabBarIcon: ({ focused }) => (
+            <AnimatedTabIcon iconComponent={PlusIcon} focused={focused} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Categories"
+        component={CategoriesScreen}
+        options={{
+          title: 'Категории',
+          tabBarIcon: ({ focused }) => (
+            <AnimatedTabIcon iconComponent={LookDownIcon} focused={focused} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Profile"
         component={SettingsScreen}
         options={{
-          title: 'Настройки',
+          title: 'Профиль',
           tabBarIcon: ({ focused }) => (
-            <View className={`items-center justify-center ${focused ? 'scale-110' : ''}`}>
-              <Text className="text-2xl mb-1">{focused ? '⚙️' : '🔧'}</Text>
-            </View>
+            <AnimatedTabIcon iconComponent={ProfileIcon} focused={focused} />
           ),
         }}
       />

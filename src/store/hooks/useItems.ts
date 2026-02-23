@@ -1,16 +1,16 @@
-import { useAppSelector, useAppDispatch } from './index';
+import { Item } from '../../types';
 import {
-  setFilters,
   clearFilters,
+  clearSelection,
+  resetItemsState,
+  selectAllItems,
+  setError,
+  setFilters,
+  setLoading,
   setSorting,
   toggleItemSelection,
-  clearSelection,
-  selectAllItems,
-  setLoading,
-  setError,
-  resetItemsState,
 } from '../slices/itemsSlice';
-import { Item } from '../../shared/types';
+import { useAppDispatch, useAppSelector } from './index';
 
 // Хук для работы с состоянием items
 export const useItems = () => {

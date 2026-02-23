@@ -1,15 +1,13 @@
 // screens/HomeScreen.tsx
+import { EmptyState } from '@/src/components/ui/emptyState';
+import { ItemCard } from '@/src/components/ui/itemCard';
 import { useSearchItems } from '@/src/hooks/useSearchItems';
 import { useNavigation } from '@react-navigation/native';
 import React, { useMemo, useState } from 'react';
 import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import DataPersistenceTest from '../components/DataPersistenceTest';
-import { EmptyState } from '@/src/shared/ui/emptyState';
-import { ItemCard } from '@/src/shared/ui/itemCard';
 import { useItems } from '../hooks/useItems';
-import { useUI } from '../store/hooks/useUI';
 import { useItems as useReduxItems } from '../store/hooks/useItems';
-import { ReduxTest } from '../components/ReduxTest';
+import { useUI } from '../store/hooks/useUI';
 
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -76,10 +74,10 @@ const HomeScreen: React.FC = () => {
   return (
     <ScrollView className="flex-1 bg-background" showsVerticalScrollIndicator={false}>
       {/* Redux Test Component */}
-      <ReduxTest />
+      {/* <ReduxTest /> */}
 
       {/* Тест сохранения данных */}
-      <DataPersistenceTest />
+      {/* <DataPersistenceTest /> */}
 
       {/* Поиск */}
       <View className="px-6 pt-6 pb-4">

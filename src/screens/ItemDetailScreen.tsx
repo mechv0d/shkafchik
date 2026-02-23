@@ -1,11 +1,11 @@
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../app/App';
 import React from 'react';
 import { Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { RootStackParamList } from '../app/App';
 // TODO: Import types from proper location
-import { Button } from '@/src/shared/ui/button';
-import { Tag } from '@/src/shared/ui/tag';
+import { Button } from '@/src/components/ui/button';
+import { Tag } from '@/src/components/ui/tag';
 import { useAppActions } from '../context/AppContext';
 import { useItem } from '../hooks/useItem';
 

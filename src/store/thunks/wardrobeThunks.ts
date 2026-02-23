@@ -1,6 +1,6 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { fetchWardrobeData, saveWardrobeData } from '../../shared/api/wardrobeApi';
-import { AppData } from '../../shared/types';
+import { fetchWardrobeData, saveWardrobeData } from '../../api/wardrobeApi';
+import { AppData } from '../../types';
 
 // Thunk для загрузки данных гардероба
 export const loadWardrobeData = createAsyncThunk<AppData, void, { rejectValue: string }>(

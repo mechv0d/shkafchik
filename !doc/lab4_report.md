@@ -985,7 +985,7 @@ const styles = StyleSheet.create({
 
 ```typescript
 // src/widgets/item-card/ui/ItemCard.tsx
-import { Card } from '@/shared/ui/card';
+import { Card } from '@/src/shared/ui/card';
 
 export const ItemCard: React.FC<ItemCardProps> = ({ item }) => {
   return (
