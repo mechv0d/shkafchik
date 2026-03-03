@@ -1,0 +1,60 @@
+import { StyleSheet } from 'react-native';
+
+export const sortButtonsStyles = StyleSheet.create({
+  sortContainer: {
+    flex: 0,
+    marginBottom: 0,
+  },
+  sortContainerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingRight: 0,
+  },
+  sortButton: {
+    height: 40,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 0,
+    gap: 6,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+    minWidth: 60,
+  },
+  sortButtonActive: {
+    backgroundColor: '#000000ff',
+    borderColor: '#000000ff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderWidth: 2,
+    color: '#fff',
+  },
+  sortButtonText: {
+    fontSize: 16,
+    color: '#000',
+    fontWeight: '400',
+    lineHeight: 16,
+    margin: 0,
+  },
+  sortButtonTextActive: {
+    color: '#fff',
+    fontWeight: '400',
+  },
+  sortCount: {
+    fontSize: 16,
+    color: '#848484',
+    marginTop: 0,
+    lineHeight: 16,
+  },
+});
