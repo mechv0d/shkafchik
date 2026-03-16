@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { ThemedText } from '../../components/themed-text';
 import { ThemedView } from '../../components/themed-view';
+import { addItemStyles } from '../../styles/AddItem.styles';
+import { commonScreenStyles } from '../../styles/CommonScreen.styles';
 import { useFormData } from './_layout';
 
 export default function NameScreen() {
@@ -24,24 +26,24 @@ export default function NameScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-          <ThemedText style={styles.backText}>← Назад</ThemedText>
+    <ScrollView style={commonScreenStyles.container}>
+      <View style={addItemStyles.header}>
+        <TouchableOpacity onPress={handleBack} style={addItemStyles.backButton}>
+          <ThemedText style={addItemStyles.backText}>←</ThemedText>
         </TouchableOpacity>
-        <ThemedText type="title" style={styles.title}>Добавить вещь</ThemedText>
+        <ThemedText type="title" style={addItemStyles.title}>Название</ThemedText>
       </View>
 
       {error ? (
-        <ThemedView style={styles.errorContainer}>
-          <ThemedText style={styles.errorText}>{error}</ThemedText>
+        <ThemedView style={addItemStyles.errorContainer}>
+          <ThemedText style={addItemStyles.errorText}>{error}</ThemedText>
         </ThemedView>
       ) : null}
 
-      <ThemedView style={styles.formContainer}>
+      <ThemedView style={commonScreenStyles.section}>
         <ThemedText type="subtitle">Наименование *</ThemedText>
         <TextInput
-          style={styles.input}
+          style={commonScreenStyles.input}
           placeholder="Введите название вещи"
           value={formData.name}
           onChangeText={(text) => updateFormData({ name: text })}
@@ -49,7 +51,7 @@ export default function NameScreen() {
 
         <ThemedText type="subtitle">Описание</ThemedText>
         <TextInput
-          style={[styles.input, styles.textarea]}
+          style={[commonScreenStyles.input, addItemStyles.textarea]}
           placeholder="Введите описание вещи"
           value={formData.description}
           onChangeText={(text) => updateFormData({ description: text })}
@@ -58,68 +60,15 @@ export default function NameScreen() {
         />
       </ThemedView>
 
-      <ThemedView style={styles.nextContainer}>
-        <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
-          <ThemedText>Далее</ThemedText>
+      <ThemedView style={addItemStyles.nextContainer}>
+        <TouchableOpacity style={commonScreenStyles.button} onPress={handleNext}>
+          <ThemedText style={commonScreenStyles.buttonText}>
+                                Далее
+                              </ThemedText>
         </TouchableOpacity>
       </ThemedView>
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  backButton: {
-    marginRight: 16,
-  },
-  backText: {
-    fontSize: 16,
-    color: '#007AFF',
-  },
-  title: {
-    flex: 1,
-  },
-  errorContainer: {
-    backgroundColor: '#FF3B30',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-  errorText: {
-    color: '#fff',
-    textAlign: 'center',
-  },
-  formContainer: {
-    marginBottom: 24,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    padding: 12,
-    marginBottom: 16,
-    borderRadius: 8,
-    backgroundColor: '#fff',
-  },
-  textarea: {
-    height: 100,
-    textAlignVertical: 'top',
-  },
-  nextContainer: {
-    alignItems: 'center',
-    paddingTop: 24,
-  },
-  nextButton: {
-    backgroundColor: '#34C759',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-});
+

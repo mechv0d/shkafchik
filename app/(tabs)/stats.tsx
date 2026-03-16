@@ -2,6 +2,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { CapsuleDAO, initDatabase, ItemDAO, TagDAO } from '@/src/api/database';
 import { debugService } from '@/src/api/debugService';
+import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, StyleSheet, TouchableOpacity, View } from 'react-native';
 
@@ -68,6 +69,34 @@ export default function StatsScreen() {
     );
   };
 
+  const cleanupColors = () => {
+    Alert.alert(
+      'Очистка дубликатов',
+      'Это действие удалит все дублирующиеся цвета из базы данных. Продолжить?',
+      [
+        { text: 'Отмена', style: 'cancel' },
+        {
+          text: 'Очистить',
+          style: 'default',
+          onPress: async () => {
+            setIsLoading(true);
+            try {
+              const result = await debugService.cleanupDuplicateColors();
+              Alert.alert(
+                result.success ? 'Успех' : 'Ошибка',
+                result.message || (result.error ? 'Произошла ошибка' : '')
+              );
+            } catch (error) {
+              Alert.alert('Ошибка', `Failed to cleanup colors: ${error}`);
+            } finally {
+              setIsLoading(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const migrateDatabase = () => {
     Alert.alert(
       'Предупреждение',
@@ -121,6 +150,12 @@ export default function StatsScreen() {
         <View style={styles.statItem}>
           <ThemedText type="subtitle">Теги</ThemedText>
           <ThemedText style={styles.statNumber}>{stats.tags}</ThemedText>
+          <TouchableOpacity
+            style={styles.tagsButton}
+            onPress={() => router.push('/tags' as any)}
+          >
+            <ThemedText style={styles.tagsButtonText}>Управлять</ThemedText>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -132,6 +167,13 @@ export default function StatsScreen() {
           disabled={isLoading}
         >
           <ThemedText style={styles.debugButtonText}>Очистить базу данных</ThemedText>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.debugButton, styles.cleanupButton]} 
+          onPress={cleanupColors}
+          disabled={isLoading}
+        >
+          <ThemedText style={styles.debugButtonText}>Очистить дубликаты цветов</ThemedText>
         </TouchableOpacity>
         <TouchableOpacity 
           style={[styles.debugButton, styles.migrateButton]} 
@@ -192,12 +234,27 @@ const styles = StyleSheet.create({
   clearButton: {
     backgroundColor: '#FF3B30',
   },
+  cleanupButton: {
+    backgroundColor: '#FF9500',
+  },
   migrateButton: {
     backgroundColor: '#007AFF',
   },
   debugButtonText: {
     color: '#fff',
     fontSize: 16,
+    fontWeight: '600',
+  },
+  tagsButton: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 4,
+    marginTop: 8,
+  },
+  tagsButtonText: {
+    color: '#fff',
+    fontSize: 12,
     fontWeight: '600',
   },
 });

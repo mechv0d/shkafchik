@@ -1,0 +1,15 @@
+import PathLayout from './PathLayout'
+import SvgLayout from './SvgLayout'
+
+const ListIcon = (props) => (
+  <SvgLayout {...props}>
+    <PathLayout
+      fillWidth={1}
+    stroke="none"
+    fill={props["color"]}
+      d="M2 3.75A.75.75 0 0 1 2.75 3h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 2 3.75m0 8a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 0 1.5h-6.5a.75.75 0 0 1-.75-.75M2.75 7a.75.75 0 0 0 0 1.5h10.5a.75.75 0 0 0 0-1.5z"
+      {...props}
+    />
+  </SvgLayout>
+)
+export default ListIcon

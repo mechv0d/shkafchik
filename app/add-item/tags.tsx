@@ -1,64 +1,83 @@
-import { useRouter } from 'expo-router';
+import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Tag, TagProps } from '../../components/Tag';
 import { ThemedText } from '../../components/themed-text';
 import { ThemedView } from '../../components/themed-view';
-import { AttributeDAO, CategoryDAO, ColorDAO, ImageDAO, initDatabase, ItemDAO, ItemStatusDAO, ItemTagDAO, TagDAO } from '../../src/api/database';
+import { AttributeDAO, CategoryDAO, ImageDAO, initDatabase, ItemDAO, ItemStatusDAO, ItemTagDAO, TagDAO } from '../../src/api/database';
 import { saveImageToAppDirectory } from '../../src/api/imageProcessor';
+import { addItemStyles } from '../../styles/AddItem.styles';
+import { commonScreenStyles } from '../../styles/CommonScreen.styles';
 import { useFormData } from './_layout';
 
 export default function TagsScreen() {
   const { formData, updateFormData } = useFormData();
-  const router = useRouter();
-  const [newTag, setNewTag] = useState('');
-
-  const [availableTags, setAvailableTags] = useState<any[]>([]);
-  const [colors, setColors] = useState<any[]>([]);
+  const [availableTags, setAvailableTags] = useState<TagProps[]>([]);
+  const [showTagModal, setShowTagModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    loadTagsAndColors();
+    loadTags();
   }, []);
 
-  const loadTagsAndColors = async () => {
+  const loadTags = async () => {
     try {
       await initDatabase();
       const tagsResult = await TagDAO.getAll();
-      const colorsResult = await ColorDAO.getAll();
-      setAvailableTags(tagsResult);
-      setColors(colorsResult);
+      
+      // Sort: "Новое" first, then by creation date (newest first)
+      const sortedTags = tagsResult.sort((a, b) => {
+        if (a.name === 'Новое') return -1;
+        if (b.name === 'Новое') return 1;
+        return b.id - a.id; // Newest first for other tags
+      });
+      
+      setAvailableTags(sortedTags);
     } catch (error) {
       console.error('Failed to load tags:', error);
     }
   };
 
-  const addTag = () => {
-    if (newTag.trim() && !formData.tags.includes(newTag.trim())) {
-      updateFormData({ tags: [...formData.tags, newTag.trim()] });
-      setNewTag('');
+  const addTag = (tag: TagProps) => {
+    if (!formData.tags.includes(tag.name)) {
+      updateFormData({ tags: [...formData.tags, tag.name] });
     }
   };
 
-  const removeTag = (tag: string) => {
-    updateFormData({ tags: formData.tags.filter(t => t !== tag) });
+  const removeTag = (tagName: string) => {
+    // Don't allow removal of 'Новое' tag
+    if (tagName === 'Новое') {
+      return;
+    }
+    updateFormData({ tags: formData.tags.filter(t => t !== tagName) });
+  };
+
+  const isTagSelected = (tagName: string) => {
+    return formData.tags.includes(tagName);
   };
 
   const handleSave = async () => {
     try {
       await initDatabase();
       
-      // Find or create category
-      let category = await CategoryDAO.getByName(formData.subcategory);
-      if (!category) {
-        const catId = await CategoryDAO.create({ name: formData.subcategory });
-        category = await CategoryDAO.getById(catId);
+      // Get category from form data
+      let category;
+      if (formData.categoryId) {
+        category = await CategoryDAO.getById(formData.categoryId);
+      } else {
+        // Fallback for backward compatibility
+        category = await CategoryDAO.getByName(formData.subcategory);
+        if (!category) {
+          const catId = await CategoryDAO.create({ name: formData.subcategory });
+          category = await CategoryDAO.getById(catId);
+        }
       }
       if (!category) throw new Error('Failed to create or find category');
 
       // Map status
-      let statusName = formData.status === 'Куплено' ? 'в использовании' : 'на хранении';
-      let status = await ItemStatusDAO.getByName(statusName);
+      let status = await ItemStatusDAO.getByName(formData.status.toLowerCase());
       if (!status) {
-        status = await ItemStatusDAO.getById(1); // fallback
+        status = await ItemStatusDAO.getFirst(); // fallback
       }
       if (!status) throw new Error('Failed to find status');
 
@@ -82,7 +101,7 @@ export default function TagsScreen() {
       // Insert attributes
       const attributes = [
         { type: 'description', value: formData.description },
-        { type: 'price', value: formData.price.toString() },
+        // { type: 'price', value: formData.price.toString() },
         { type: 'purchaseDate', value: formData.purchaseDate },
         { type: 'store', value: formData.store },
         { type: 'rating', value: formData.rating.toString() },
@@ -112,7 +131,7 @@ export default function TagsScreen() {
       }
 
       Alert.alert('Успех', 'Вещь добавлена!', [
-        { text: 'OK', onPress: () => router.replace('/(tabs)') },
+        { text: 'OK', onPress: () => router.replace('/(tabs)/items') },
       ]);
     } catch (error) {
       console.error(error);
@@ -125,90 +144,151 @@ export default function TagsScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-          <ThemedText style={styles.backText}>← Назад</ThemedText>
+    <ScrollView style={commonScreenStyles.container}>
+      <View style={addItemStyles.header}>
+        <TouchableOpacity onPress={handleBack} style={addItemStyles.backButton}>
+          <ThemedText style={addItemStyles.backText}>←</ThemedText>
         </TouchableOpacity>
-        <ThemedText type="title" style={styles.title}>Добавить вещь</ThemedText>
+        <ThemedText type="title" style={addItemStyles.title}>Теги</ThemedText>
       </View>
 
-      <ThemedView style={styles.formContainer}>
-        <ThemedText type="subtitle">Теги</ThemedText>
-        <View style={styles.addTagContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Новый тег"
-            value={newTag}
-            onChangeText={setNewTag}
-          />
-          <TouchableOpacity style={styles.addButton} onPress={addTag}>
-            <ThemedText>Добавить</ThemedText>
+      <ThemedView style={commonScreenStyles.section}>
+        <View style={styles.sectionHeader}>
+          <ThemedText type="subtitle">Теги</ThemedText>
+          <TouchableOpacity 
+            style={styles.addTagButton} 
+            onPress={() => setShowTagModal(true)}
+          >
+            <ThemedText style={styles.addTagButtonText}>+ Добавить</ThemedText>
           </TouchableOpacity>
         </View>
-        <View style={styles.tagsContainer}>
-          {formData.tags.map((tag) => (
-            <View key={tag} style={styles.tagItem}>
-              <ThemedText>{tag}</ThemedText>
-              <TouchableOpacity onPress={() => removeTag(tag)}>
-                <ThemedText style={styles.removeText}>✕</ThemedText>
-              </TouchableOpacity>
-            </View>
-          ))}
+        
+        <View style={styles.selectedTagsContainer}>
+          <ThemedText style={styles.selectedTagsLabel}>Выбранные теги:</ThemedText>
+          <View style={styles.tagsContainer}>
+            {formData.tags.map((tagName) => {
+              const tag = availableTags.find(t => t.name === tagName);
+              return (
+                <View key={tagName} style={styles.tagItem}>
+                  {tag ? (
+                    <Tag
+                      id={tag.id}
+                      name={tag.name}
+                      color={tag.color}
+                      disabled={tagName === 'Новое'}
+                      isProtected={tagName === 'Новое'}
+                    />
+                  ) : (
+                    <View style={styles.customTagItem}>
+                      <ThemedText style={styles.customTagText}>{tagName}</ThemedText>
+                    </View>
+                  )}
+                  {tagName !== 'Новое' && (
+                    <TouchableOpacity 
+                      onPress={() => removeTag(tagName)}
+                      style={styles.removeButton}
+                    >
+                      <ThemedText style={styles.removeText}>✕</ThemedText>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              );
+            })}
+          </View>
         </View>
       </ThemedView>
 
-      <ThemedView style={styles.nextContainer}>
-        <TouchableOpacity style={styles.nextButton} onPress={handleSave}>
-          <ThemedText>Сохранить</ThemedText>
+      <ThemedView style={addItemStyles.nextContainer}>
+        <TouchableOpacity style={commonScreenStyles.button} onPress={handleSave}>
+          <ThemedText style={commonScreenStyles.buttonText}>Сохранить</ThemedText>
         </TouchableOpacity>
       </ThemedView>
+
+      {/* Tag Selection Modal */}
+      <Modal
+        visible={showTagModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowTagModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <ThemedText type="subtitle">Выберите теги</ThemedText>
+              <TouchableOpacity 
+                style={styles.closeButton} 
+                onPress={() => setShowTagModal(false)}
+              >
+                <ThemedText style={styles.closeButtonText}>✕</ThemedText>
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.tagsList} showsVerticalScrollIndicator={false}>
+              {availableTags.map((tag) => {
+                const selected = isTagSelected(tag.name);
+                return (
+                  <TouchableOpacity
+                    key={tag.id}
+                    style={[
+                      styles.tagSelectItem,
+                      selected && styles.tagSelectItemSelected
+                    ]}
+                    onPress={() => {
+                      if (selected) {
+                        removeTag(tag.name);
+                      } else {
+                        addTag(tag);
+                      }
+                    }}
+                    disabled={tag.name === 'Новое'}
+                  >
+                    <Tag
+                      id={tag.id}
+                      name={tag.name}
+                      color={tag.color}
+                      disabled={tag.name === 'Новое'}
+                      isProtected={tag.name === 'Новое'}
+                    />
+                    {selected && (
+                      <ThemedText style={styles.checkmark}>✓</ThemedText>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-  },
-  header: {
+  sectionHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
-  },
-  backButton: {
-    marginRight: 16,
-  },
-  backText: {
-    fontSize: 16,
-    color: '#007AFF',
-  },
-  title: {
-    flex: 1,
-  },
-  formContainer: {
-    marginBottom: 24,
-  },
-  addTagContainer: {
-    flexDirection: 'row',
     marginBottom: 16,
   },
-  input: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: '#fff',
-    marginRight: 8,
-  },
-  addButton: {
+  addTagButton: {
     backgroundColor: '#007AFF',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 8,
-    justifyContent: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  addTagButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  selectedTagsContainer: {
+    marginBottom: 16,
+  },
+  selectedTagsLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 8,
+    color: '#666',
   },
   tagsContainer: {
     flexDirection: 'row',
@@ -217,24 +297,73 @@ const styles = StyleSheet.create({
   tagItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f9f9f9',
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  customTagItem: {
+    backgroundColor: '#f0f0f0',
+    borderRadius: 16,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 16,
-    margin: 4,
+  },
+  customTagText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  removeButton: {
+    marginLeft: 4,
   },
   removeText: {
-    marginLeft: 8,
     color: '#FF3B30',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
-  nextContainer: {
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 24,
   },
-  nextButton: {
-    backgroundColor: '#34C759',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    width: '90%',
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  closeButton: {
+    padding: 4,
+  },
+  closeButtonText: {
+    fontSize: 18,
+    color: '#666',
+  },
+  tagsList: {
+    padding: 16,
+  },
+  tagSelectItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 4,
     borderRadius: 8,
+    marginBottom: 4,
+  },
+  tagSelectItemSelected: {
+    backgroundColor: '#e3f2fd',
+  },
+  checkmark: {
+    fontSize: 16,
+    color: '#007AFF',
+    fontWeight: 'bold',
   },
 });

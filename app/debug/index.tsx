@@ -219,7 +219,7 @@ export default function DebugScreen() {
       }
     >
       <View>
-        <TouchableOpacity onPress={() => router.push('/')} style={styles.backButton}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <ThemedText style={styles.backText}>← Назад</ThemedText>
         </TouchableOpacity>
         <ThemedText type="title" style={styles.title}>Debug</ThemedText>

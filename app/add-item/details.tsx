@@ -1,18 +1,64 @@
+import StarRating from '@/components/StarRating';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { initDatabase, ItemStatusDAO } from '@/src/api/database';
+import { addItemStyles } from '@/styles/AddItem.styles';
+import { commonScreenStyles } from '@/styles/CommonScreen.styles';
+import { capitalize } from '@/utils/capitalize';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
-import { ThemedText } from '../../components/themed-text';
-import { ThemedView } from '../../components/themed-view';
 import { useFormData } from './_layout';
-
-const statusOptions = ['Куплено', 'В корзине'];
 
 export default function DetailsScreen() {
   const { formData, updateFormData } = useFormData();
   const router = useRouter();
   const [showStatusModal, setShowStatusModal] = useState(false);
+  const [statusOptions, setStatusOptions] = useState<any[]>([]);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    loadStatuses();
+  }, []);
+
+  const loadStatuses = async (retryCount = 0) => {  
+    const maxRetries = 2;
+    
+    try {
+      console.log('Loading statuses...' + (retryCount > 0 ? ` (retry ${retryCount})` : ''));
+      const db = await initDatabase();
+      console.log('Database initialized successfully');
+      const statuses = await ItemStatusDAO.getAll();
+      console.log('Statuses loaded:', statuses.length);
+      // capitalize statuses
+      const capStatuses = statuses.map((status) => ({
+        ...status,
+        name: capitalize(status.name),
+      }));
+      setStatusOptions(capStatuses);
+      setError(''); // Clear any previous errors
+    } catch (error) {
+      console.error('Failed to load statuses:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Error details:', errorMessage);
+      
+      // Retry if it's a connection issue and we haven't exceeded max retries
+      if (retryCount < maxRetries && errorMessage.includes('NullPointerException')) {
+        console.log(`Retrying in 500ms... (${retryCount + 1}/${maxRetries})`);
+        setTimeout(() => loadStatuses(retryCount + 1), 500);
+        return;
+      }
+      
+      setError('Failed to load statuses: ' + errorMessage);
+    }
+  };
 
   const handleNext = () => {
+    if (!formData.status) {
+      setError('Выберите статус вещи');
+      return;
+    }
+    setError('');
     router.push('./category');
   };
 
@@ -20,59 +66,39 @@ export default function DetailsScreen() {
     router.back();
   };
 
-  const selectStatus = (status: string) => {
-    updateFormData({ status: status as 'Куплено' | 'В корзине' });
+  const selectStatus = (status: any) => {
+    updateFormData({ status: status.name });
     setShowStatusModal(false);
   };
 
-  const renderStars = () => {
-    const stars = [];
-    for (let i = 1; i <= 5; i++) {
-      stars.push(
-        <TouchableOpacity
-          key={i}
-          onPress={() => updateFormData({ rating: i })}
-          style={styles.star}
-        >
-          <ThemedText style={[styles.starText, formData.rating >= i && styles.starSelected]}>
-            ⭐
-          </ThemedText>
-        </TouchableOpacity>
-      );
-    }
-    return stars;
-  };
-
+  
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-          <ThemedText style={styles.backText}>← Назад</ThemedText>
+    <ScrollView style={commonScreenStyles.container}>
+      <View style={addItemStyles.header}>
+        <TouchableOpacity onPress={handleBack} style={addItemStyles.backButton}>
+          <ThemedText style={addItemStyles.backText}>←</ThemedText>
         </TouchableOpacity>
-        <ThemedText type="title" style={styles.title}>Добавить вещь</ThemedText>
+        <ThemedText type="title" style={addItemStyles.title}>Детали</ThemedText>
       </View>
 
-      <ThemedView style={styles.formContainer}>
+      <ThemedView style={commonScreenStyles.section}>
+        {error ? (
+          <View style={addItemStyles.errorContainerAlt}>
+            <ThemedText style={addItemStyles.errorTextAlt}>{error}</ThemedText>
+          </View>
+        ) : null}
+        
         <ThemedText type="subtitle">Статус</ThemedText>
         <TouchableOpacity
-          style={styles.picker}
+          style={addItemStyles.picker}
           onPress={() => setShowStatusModal(true)}
         >
           <ThemedText>{formData.status}</ThemedText>
         </TouchableOpacity>
 
-        <ThemedText type="subtitle">Цена</ThemedText>
-        <TextInput
-          style={styles.input}
-          placeholder="0"
-          value={formData.price.toString()}
-          onChangeText={(text) => updateFormData({ price: parseFloat(text) || 0 })}
-          keyboardType="numeric"
-        />
-
         <ThemedText type="subtitle">Дата покупки</ThemedText>
         <TextInput
-          style={styles.input}
+          style={commonScreenStyles.input}
           placeholder="YYYY-MM-DD"
           value={formData.purchaseDate}
           onChangeText={(text) => updateFormData({ purchaseDate: text })}
@@ -80,39 +106,43 @@ export default function DetailsScreen() {
 
         <ThemedText type="subtitle">Магазин</ThemedText>
         <TextInput
-          style={styles.input}
+          style={commonScreenStyles.input}
           placeholder="Название магазина"
           value={formData.store}
           onChangeText={(text) => updateFormData({ store: text })}
         />
 
         <ThemedText type="subtitle">Оценка</ThemedText>
-        <View style={styles.starsContainer}>
-          {renderStars()}
-        </View>
+        <StarRating 
+          rating={formData.rating || 0} 
+          onRatingChange={(rating) => updateFormData({ rating })} 
+          useThemedText={true}
+        />
       </ThemedView>
 
-      <ThemedView style={styles.nextContainer}>
-        <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
-          <ThemedText>Далее</ThemedText>
+      <ThemedView style={addItemStyles.nextContainer}>
+        <TouchableOpacity style={commonScreenStyles.button} onPress={handleNext}>
+           <ThemedText style={commonScreenStyles.buttonText}>
+                      Далее
+                    </ThemedText>
         </TouchableOpacity>
       </ThemedView>
 
       <Modal visible={showStatusModal} transparent animationType="slide">
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
+        <View style={addItemStyles.modalContainer}>
+          <View style={addItemStyles.modalContent}>
             <ThemedText type="subtitle">Выберите статус</ThemedText>
             {statusOptions.map((option) => (
               <TouchableOpacity
-                key={option}
-                style={styles.modalOption}
+                key={option.id}
+                style={addItemStyles.modalOption}
                 onPress={() => selectStatus(option)}
               >
-                <ThemedText>{option}</ThemedText>
+                <ThemedText>{option.name}</ThemedText>
               </TouchableOpacity>
             ))}
             <TouchableOpacity
-              style={styles.modalCancel}
+              style={addItemStyles.modalCancel}
               onPress={() => setShowStatusModal(false)}
             >
               <ThemedText>Отмена</ThemedText>
@@ -125,88 +155,5 @@ export default function DetailsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  backButton: {
-    marginRight: 16,
-  },
-  backText: {
-    fontSize: 16,
-    color: '#007AFF',
-  },
-  title: {
-    flex: 1,
-  },
-  formContainer: {
-    marginBottom: 24,
-  },
-  picker: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    padding: 12,
-    marginBottom: 16,
-    borderRadius: 8,
-    backgroundColor: '#fff',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    padding: 12,
-    marginBottom: 16,
-    borderRadius: 8,
-    backgroundColor: '#fff',
-  },
-  starsContainer: {
-    flexDirection: 'row',
-    marginBottom: 16,
-  },
-  star: {
-    marginRight: 8,
-  },
-  starText: {
-    fontSize: 24,
-    color: '#ccc',
-  },
-  starSelected: {
-    color: '#FFD700',
-  },
-  nextContainer: {
-    alignItems: 'center',
-    paddingTop: 24,
-  },
-  nextButton: {
-    backgroundColor: '#34C759',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 8,
-    width: '80%',
-  },
-  modalOption: {
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
-  },
-  modalCancel: {
-    padding: 12,
-    alignItems: 'center',
-    marginTop: 16,
-  },
+  // No local styles needed - all moved to addItemStyles
 });

@@ -1,8 +1,11 @@
 import { ThemedText } from '@/components/themed-text';
+import { Fonts } from '@/constants/theme';
 import { ItemWithDetails } from '@/src/models';
+import { capitalize } from '@/utils/capitalize';
 import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface ItemCardProps {
   item: ItemWithDetails;
@@ -10,6 +13,8 @@ interface ItemCardProps {
 }
 
 export function ItemCard({ item, isFeatured = false }: ItemCardProps) {
+  const router = useRouter();
+
   const getImageSource = () => {
     if (item.images && item.images.length > 0) {
       return { uri: item.images[0].file_path };
@@ -22,8 +27,27 @@ export function ItemCard({ item, isFeatured = false }: ItemCardProps) {
     return date.toLocaleDateString('ru-RU');
   };
 
+  const formatAttributeValue = (attr: any) => {
+    // Capitalize status values
+    if (attr.attribute_type === 'status') {
+      return capitalize(attr.value);
+    }
+    return attr.value;
+  };
+
+  const handlePress = () => {
+    console.log('ItemCard pressed - item ID:', item.id);
+    console.log('ItemCard pressed - item name:', item.name);
+    console.log('Navigating to:', `/item/${item.id}`);
+    router.push(`/item/${item.id}` as any);
+  };
+
   return (
-    <View style={[styles.card, isFeatured && styles.featuredCard]}>
+    <TouchableOpacity 
+      onPress={handlePress}
+      style={[styles.card, isFeatured && styles.featuredCard]}
+      activeOpacity={0.7}
+    >
       <Image 
         source={getImageSource()} 
         style={[styles.image, isFeatured && styles.featuredImage]}
@@ -32,18 +56,18 @@ export function ItemCard({ item, isFeatured = false }: ItemCardProps) {
       <ThemedText style={[styles.name, isFeatured && styles.featuredName]} numberOfLines={2}>
         {item.name}
       </ThemedText>
-      <ThemedText style={[styles.price, isFeatured && styles.featuredPrice]}>
+      {/* <ThemedText style={[styles.price, isFeatured && styles.featuredPrice]}>
         {item.attributes.find(attr => attr.attribute_type === 'price')?.value || 'Цена не указана'}
-      </ThemedText>
+      </ThemedText> */}
       <ThemedText style={[styles.date, isFeatured && styles.featuredDate]}>
         {formatDate(item.date_created)}
       </ThemedText>
       <ThemedText style={[styles.status, isFeatured && styles.featuredStatus]}>
-        {item.status.name}
+        {capitalize(item.status.name)}
       </ThemedText>
       
       {/* All attributes section */}
-      <View style={styles.attributesContainer}>
+      {/* <View style={styles.attributesContainer}>
         {item.attributes
           .filter(attr => attr.attribute_type !== 'price') // Exclude price as it's already shown
           .map((attr, index) => (
@@ -52,12 +76,12 @@ export function ItemCard({ item, isFeatured = false }: ItemCardProps) {
                 {attr.attribute_type}:
               </ThemedText>
               <ThemedText style={styles.attributeValue}>
-                {attr.value}
+                {formatAttributeValue(attr)}
               </ThemedText>
             </View>
           ))}
-      </View>
-    </View>
+      </View> */}
+    </TouchableOpacity>
   );
 }
 
@@ -94,6 +118,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 4,
     minHeight: 36,
+    fontFamily: Fonts.sans,
   },
   featuredName: {
     fontSize: 18,
@@ -103,6 +128,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#007AFF',
     marginBottom: 4,
+    fontFamily: Fonts.sans,
   },
   featuredPrice: {
     fontSize: 16,
@@ -110,6 +136,7 @@ const styles = StyleSheet.create({
   date: {
     fontSize: 12,
     color: '#666',
+    fontFamily: Fonts.sans,
   },
   featuredDate: {
     fontSize: 14,
@@ -119,6 +146,7 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     fontWeight: '500',
     marginBottom: 4,
+    fontFamily: Fonts.sans,
   },
   featuredStatus: {
     fontSize: 14,
@@ -140,11 +168,13 @@ const styles = StyleSheet.create({
     color: '#666',
     fontWeight: '500',
     flex: 1,
+    fontFamily: Fonts.sans,
   },
   attributeValue: {
     fontSize: 11,
     color: '#333',
     flex: 2,
     textAlign: 'right',
+    fontFamily: Fonts.sans,
   },
 });

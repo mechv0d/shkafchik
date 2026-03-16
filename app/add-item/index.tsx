@@ -1,15 +1,30 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
-import React from 'react';
-import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { router } from 'expo-router';
+import React, { useEffect } from 'react';
+import { Alert, BackHandler, ScrollView, TouchableOpacity } from 'react-native';
 import { ThemedText } from '../../components/themed-text';
 import { ThemedView } from '../../components/themed-view';
+import TrashIcon from '../../components/ui/icons/TrashIcon';
+import { Colors } from '../../constants/theme';
 import { captureFromCamera, pickFromGallery, ProcessedImage } from '../../src/api/imageProcessor';
+import { commonScreenStyles } from '../../styles/CommonScreen.styles';
 import { useFormData } from './_layout';
 
 export default function AddItemScreen() {
   const { formData, updateFormData } = useFormData();
-  const router = useRouter();
+  // const router = useRouter();
+
+  useEffect(() => {
+    const backAction = () => {
+      handleBack();
+      return true;
+    };
+
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+
+    return () => backHandler.remove();
+  }, []);
 
   const handleCaptureFromCamera = async () => {
     try {
@@ -48,101 +63,105 @@ export default function AddItemScreen() {
     );
   };
 
+  const handleBack = () => {
+    router.push('/items');
+  };
+
   const handleNext = () => {
     router.push('/add-item/name');
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <ThemedView style={styles.header}>
-        {/* <ThemedText type="title">Добавить вещь</ThemedText> */}
-        <ThemedText>Сфотографируйте или выберите изображение вещи</ThemedText>
+    <ThemedView style={[commonScreenStyles.container]}>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ backgroundColor: '#ffffff' }}>
+      <ThemedView style={commonScreenStyles.header}>
+        <TouchableOpacity style={{ paddingVertical: 5 }} onPress={handleBack}>
+          <Ionicons name="arrow-back" size={24} color="#000" />
+        </TouchableOpacity>
+        <ThemedText type="title">Новая вещь</ThemedText>
       </ThemedView>
 
-      <ThemedView style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.button} onPress={handleCaptureFromCamera}>
-          <ThemedText>📷 Сфотографировать</ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.button} onPress={handlePickFromGallery}>
-          <ThemedText>📁 Выбрать из галереи</ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.button, { backgroundColor: '#FF3B30' }]} onPress={resetPhotos}>
-          <ThemedText>🗑️ Сбросить все фото</ThemedText>
-        </TouchableOpacity>
-      </ThemedView>
-
-      <ThemedView style={styles.imagesContainer}>
-        <ThemedText type="subtitle">Изображения ({formData.photos.length})</ThemedText>
-        {formData.photos.map((image: ProcessedImage, index: number) => (
-          <View key={index} style={styles.imageItem}>
-            <Image source={{ uri: image.uri }} style={styles.image} />
-            <ThemedText>Фото {index + 1}</ThemedText>
-            <TouchableOpacity style={styles.deleteButton} onPress={() => removeImage(index)}>
-              <ThemedText>🗑️</ThemedText>
+      <ThemedView style={commonScreenStyles.section}>
+        <ThemedView style={{ gap: 12 }}>
+          <TouchableOpacity style={commonScreenStyles.button} onPress={handleCaptureFromCamera}>
+            <ThemedText style={commonScreenStyles.buttonText}>Сфотографировать</ThemedText>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={commonScreenStyles.buttonSecondary} onPress={handlePickFromGallery}>
+            <ThemedText style={commonScreenStyles.buttonSecondaryText}>Выбрать из галереи</ThemedText>
+          </TouchableOpacity>
+          
+          {formData.photos.length > 0 && (
+            <TouchableOpacity style={commonScreenStyles.buttonSecondary} onPress={resetPhotos}>
+              <ThemedText style={commonScreenStyles.buttonSecondaryText}>Сбросить все фото</ThemedText>
             </TouchableOpacity>
-          </View>
-        ))}
+          )}
+        </ThemedView>
       </ThemedView>
 
-      <ThemedView style={styles.nextContainer}>
-        <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
-          <ThemedText>Далее</ThemedText>
+      {formData.photos.length > 0 && (
+        <ThemedView style={commonScreenStyles.section}>
+          <ThemedText type="subtitle" style={{ marginBottom: 8 }}>Изображения ({formData.photos.length})</ThemedText>
+          {formData.photos.map((image: ProcessedImage, index: number) => (
+            <ThemedView key={index} style={commonScreenStyles.card}>
+              <ThemedView style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12,
+                paddingBottom: 16,
+                borderBottomWidth: 1,
+                borderBottomColor: '#e0e0e0',
+              }}>
+                <Image 
+                  source={{ uri: image.uri }} 
+                  style={{
+                    width: 60,
+                    height: 60,
+                    borderRadius: 8,
+                    backgroundColor: '#f8f9fa',
+                  }} 
+                />
+                <ThemedText style={commonScreenStyles.cardTitle}>Фото {index + 1}</ThemedText>
+                <TouchableOpacity style={commonScreenStyles.button} onPress={() => removeImage(index)}>
+                  <ThemedText style={commonScreenStyles.buttonText}><TrashIcon color={'#fff'}/></ThemedText>
+                </TouchableOpacity>
+              </ThemedView>
+            </ThemedView>
+          ))}
+        </ThemedView>
+      )}
+
+      <ThemedView style={{ marginTop: 'auto', paddingTop: 24 }}>
+        <TouchableOpacity 
+          style={[
+            commonScreenStyles.button, 
+            { 
+              backgroundColor: formData.photos.length > 0 ? '#000000ff' : '#8E8E93',
+            }
+          ]} 
+          onPress={handleNext}
+          disabled={formData.photos.length === 0}
+        >
+          <ThemedText style={commonScreenStyles.buttonText}>
+            Далее
+          </ThemedText>
         </TouchableOpacity>
+        
+        {formData.photos.length === 0 && (
+          <ThemedText style={{
+            textAlign: 'center',
+            fontSize: 14,
+            opacity: 0.6,
+            marginTop: 8,
+          }}>
+            Добавьте хотя бы одно фото, чтобы продолжить
+          </ThemedText>
+        )}
       </ThemedView>
     </ScrollView>
+    </ThemedView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-  },
-  header: {
-    marginBottom: 24,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    marginBottom: 24,
-  },
-  button: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 8,
-    margin: 4,
-  },
-  imagesContainer: {
-    marginBottom: 24,
-  },
-  imageItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-    padding: 8,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
-  },
-  image: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    marginRight: 12,
-  },
-  deleteButton: {
-    marginLeft: 'auto',
-    padding: 8,
-  },
-  nextContainer: {
-    alignItems: 'center',
-    paddingTop: 24,
-  },
-  nextButton: {
-    backgroundColor: '#34C759',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-});
+

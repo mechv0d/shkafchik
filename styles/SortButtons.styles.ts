@@ -1,3 +1,4 @@
+import { Fonts } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
 
 export const sortButtonsStyles = StyleSheet.create({
@@ -46,6 +47,7 @@ export const sortButtonsStyles = StyleSheet.create({
     fontWeight: '400',
     lineHeight: 16,
     margin: 0,
+    fontFamily: Fonts.sans,
   },
   sortButtonTextActive: {
     color: '#fff',
@@ -56,5 +58,6 @@ export const sortButtonsStyles = StyleSheet.create({
     color: '#848484',
     marginTop: 0,
     lineHeight: 16,
+    fontFamily: Fonts.sans,
   },
 });

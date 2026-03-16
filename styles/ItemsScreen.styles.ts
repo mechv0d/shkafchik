@@ -1,3 +1,4 @@
+import { Fonts } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
 
 export const itemsScreenStyles = StyleSheet.create({
@@ -17,5 +18,6 @@ export const itemsScreenStyles = StyleSheet.create({
     marginBottom: 12,
     borderRadius: 8,
     backgroundColor: '#fff',
+    fontFamily: Fonts.sans,
   },
 });

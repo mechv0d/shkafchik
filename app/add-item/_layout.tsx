@@ -6,13 +6,13 @@ export interface FormData {
   photos: ProcessedImage[];
   name: string;
   description: string;
-  status: 'Куплено' | 'В корзине';
-  price: number;
+  status: string;
   purchaseDate: string;
   store: string;
   rating: number;
   category: string;
   subcategory: string;
+  categoryId?: number;
   tags: string[];
 }
 
@@ -20,8 +20,7 @@ const defaultFormData: FormData = {
   photos: [],
   name: '',
   description: '',
-  status: 'Куплено',
-  price: 0,
+  status: '',
   purchaseDate: new Date().toISOString().split('T')[0],
   store: '',
   rating: 0,
@@ -60,7 +59,10 @@ export const useFormData = () => {
 export default function AddItemLayout() {
   return (
     <FormProvider>
-      <Stack>
+      <Stack screenOptions={{ 
+        headerShown: false,
+        animation: 'slide_from_right'
+      }}>
         <Stack.Screen name="index" options={{ title: 'Добавить вещь' }} />
         <Stack.Screen name="name" options={{ title: 'Название' }} />
         <Stack.Screen name="category" options={{ title: 'Категория' }} />

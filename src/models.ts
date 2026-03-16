@@ -77,8 +77,11 @@ export interface CategoryFilterValue {
 export interface Category {
   id: number;
   name: string;
+  parent_id?: number;
   date_created: string;
   date_modified: string;
+  children?: Category[];
+  parent?: Category;
 }
 
 export interface ItemStatus {

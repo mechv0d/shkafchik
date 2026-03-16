@@ -1,14 +1,14 @@
 import * as SQLite from 'expo-sqlite';
 import {
-  Attribute,
-  Capsule,
-  Category,
-  Color,
-  Image,
-  Item,
-  ItemStatus,
-  ItemWithDetails,
-  Tag
+    Attribute,
+    Capsule,
+    Category,
+    Color,
+    Image,
+    Item,
+    ItemStatus,
+    ItemWithDetails,
+    Tag
 } from '../models';
 
 // Database connection
@@ -16,16 +16,48 @@ let db: SQLite.SQLiteDatabase | null = null;
 
 // Database initialization
 export const initDatabase = async (): Promise<SQLite.SQLiteDatabase> => {
-  if (db) return db;
+  if (db) {
+    try {
+      // Test if the connection is still valid
+      await db.getFirstAsync('SELECT 1');
+      return db;
+    } catch (error) {
+      console.log('Database connection is invalid, reinitializing...');
+      db = null;
+    }
+  }
   
   try {
+    console.log('Initializing database connection...');
     db = await SQLite.openDatabaseAsync('shkafchik.db');
+    
+    // Create tables (will skip existing ones)
     await createTables();
+    
     await insertInitialData();
+    
+    console.log('Database initialized successfully');
     return db;
   } catch (error) {
     console.error('Database initialization failed:', error);
+    db = null;
     throw error;
+  }
+};
+
+// Run database migrations
+const runMigrations = async () => {
+  if (!db) throw new Error('Database not initialized');
+  
+  try {
+    // Add is_favorite column to Items table if it doesn't exist
+    await db.execAsync(`
+      ALTER TABLE Items ADD COLUMN is_favorite INTEGER DEFAULT 0;
+    `);
+    console.log('Added is_favorite column to Items table');
+  } catch (error) {
+    // Column might already exist, which is fine
+    console.log('is_favorite column already exists or migration not needed');
   }
 };
 
@@ -38,8 +70,10 @@ const createTables = async () => {
     `CREATE TABLE IF NOT EXISTS Categories (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL UNIQUE,
+      parent_id INTEGER,
       date_created TEXT DEFAULT CURRENT_TIMESTAMP,
-      date_modified TEXT DEFAULT CURRENT_TIMESTAMP
+      date_modified TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (parent_id) REFERENCES Categories (id) ON DELETE SET NULL
     );`,
     
     // ItemStatuses table
@@ -52,7 +86,7 @@ const createTables = async () => {
     // Colors table
     `CREATE TABLE IF NOT EXISTS Colors (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
+      name TEXT NOT NULL UNIQUE,
       hex_code TEXT NOT NULL
     );`,
     
@@ -62,6 +96,7 @@ const createTables = async () => {
       name TEXT NOT NULL,
       category_id INTEGER NOT NULL,
       status_id INTEGER NOT NULL,
+      is_favorite INTEGER DEFAULT 0,
       date_created TEXT DEFAULT CURRENT_TIMESTAMP,
       date_modified TEXT DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (category_id) REFERENCES Categories (id) ON DELETE RESTRICT,
@@ -157,12 +192,31 @@ const createTables = async () => {
     'CREATE INDEX IF NOT EXISTS idx_items_status_id ON Items (status_id);',
     'CREATE INDEX IF NOT EXISTS idx_items_date_created ON Items (date_created);',
     'CREATE INDEX IF NOT EXISTS idx_tags_name ON Tags (name);',
-    'CREATE INDEX IF NOT EXISTS idx_item_tags_tag_id ON ItemTags (tag_id);'
+    'CREATE INDEX IF NOT EXISTS idx_item_tags_tag_id ON ItemTags (tag_id);',
+    'CREATE INDEX IF NOT EXISTS idx_categories_parent_id ON Categories (parent_id);'
   ];
   
   for (const index of indexes) {
     await db.execAsync(index);
   }
+  
+  // Run migrations for existing databases
+  await runMigrations();
+};
+
+// Clean up duplicate colors
+const cleanupDuplicateColors = async () => {
+  if (!db) throw new Error('Database not initialized');
+  
+  // Delete duplicate colors, keeping only the first occurrence (lowest id)
+  await db.runAsync(`
+    DELETE FROM Colors 
+    WHERE id NOT IN (
+      SELECT MIN(id) 
+      FROM Colors 
+      GROUP BY name
+    )
+  `);
 };
 
 // Insert initial data
@@ -171,7 +225,6 @@ const insertInitialData = async () => {
   
   // Insert item statuses
   const statuses = [
-    'в корзине',
     'в использовании',
     'на хранении',
     'на выброс/в переработку',
@@ -182,7 +235,7 @@ const insertInitialData = async () => {
     await db.runAsync('INSERT OR IGNORE INTO ItemStatuses (name) VALUES (?)', [status]);
   }
   
-  // Insert categories
+  // Insert basic categories (migration will handle hierarchy)
   const categories = [
     'верхняя одежда',
     'обувь',
@@ -242,6 +295,9 @@ const insertInitialData = async () => {
     await db.runAsync('INSERT OR IGNORE INTO Colors (name, hex_code) VALUES (?, ?)', [name, hex]);
   }
   
+  // Clean up any duplicate colors that might exist
+  await cleanupDuplicateColors();
+  
   // Insert initial tags
   const tags = [
     ['Домашнее', 'Светло-серый'],
@@ -266,8 +322,8 @@ export class CategoryDAO {
     if (!db) throw new Error('Database not initialized');
     
     const result = await db.runAsync(
-      'INSERT INTO Categories (name) VALUES (?)',
-      [category.name]
+      'INSERT INTO Categories (name, parent_id) VALUES (?, ?)',
+      [category.name, category.parent_id || null]
     );
     
     return result.lastInsertRowId!;
@@ -322,6 +378,79 @@ export class CategoryDAO {
     const result = await db.runAsync('DELETE FROM Categories WHERE id = ?', [id]);
     return result.changes > 0;
   }
+  
+  static async getParents(): Promise<Category[]> {
+    if (!db) throw new Error('Database not initialized');
+    
+    const rows = await db.getAllAsync<Category>(
+      'SELECT * FROM Categories WHERE parent_id IS NULL ORDER BY name'
+    );
+    return rows;
+  }
+  
+  static async getChildren(parentId: number): Promise<Category[]> {
+    if (!db) throw new Error('Database not initialized');
+    
+    const rows = await db.getAllAsync<Category>(
+      'SELECT * FROM Categories WHERE parent_id = ? ORDER BY name',
+      [parentId]
+    );
+    return rows;
+  }
+  
+  static async getHierarchy(): Promise<Category[]> {
+    if (!db) throw new Error('Database not initialized');
+    
+    const allCategories = await this.getAll();
+    const categoryMap = new Map<number, Category>();
+    
+    // Create map of all categories
+    allCategories.forEach(category => {
+      categoryMap.set(category.id, { ...category, children: [] });
+    });
+    
+    // Build hierarchy
+    const parents: Category[] = [];
+    categoryMap.forEach(category => {
+      if (category.parent_id) {
+        const parent = categoryMap.get(category.parent_id);
+        if (parent) {
+          parent.children!.push(category);
+        }
+      } else {
+        parents.push(category);
+      }
+    });
+    
+    return parents;
+  }
+  
+  static async getCategoryPath(categoryId: number): Promise<string> {
+    if (!db) throw new Error('Database not initialized');
+    
+    const path: string[] = [];
+    let currentId: number | null = categoryId;
+    
+    while (currentId !== null) {
+      const category = await this.getById(currentId);
+      if (!category) break;
+      
+      path.unshift(category.name);
+      currentId = category.parent_id || null;
+    }
+    
+    return path.join(' → ');
+  }
+  
+  static async getCategoryWithChildren(categoryId: number): Promise<Category | null> {
+    if (!db) throw new Error('Database not initialized');
+    
+    const category = await this.getById(categoryId);
+    if (!category) return null;
+    
+    const children = await this.getChildren(categoryId);
+    return { ...category, children };
+  }
 }
 
 export class ItemStatusDAO {
@@ -343,6 +472,13 @@ export class ItemStatusDAO {
     if (!db) throw new Error('Database not initialized');
     
     const row = await db.getFirstAsync<ItemStatus>('SELECT * FROM ItemStatuses WHERE name = ?', [name]);
+    return row || null;
+  }
+
+  static async getFirst(): Promise<ItemStatus | null> {
+    if (!db) throw new Error('Database not initialized');
+    
+    const row = await db.getFirstAsync<ItemStatus>('SELECT * FROM ItemStatuses ORDER BY id LIMIT 1');
     return row || null;
   }
 }
@@ -462,6 +598,39 @@ export class ItemDAO {
     return rows;
   }
   
+  static async updateFavorite(id: number, isFavorite: boolean): Promise<boolean> {
+    if (!db) throw new Error('Database not initialized');
+    
+    const result = await db.runAsync(
+      'UPDATE Items SET is_favorite = ? WHERE id = ?',
+      [isFavorite ? 1 : 0, id]
+    );
+    
+    return result.changes > 0;
+  }
+  
+  static async updateAttribute(itemId: number, attributeType: string, value: string): Promise<boolean> {
+    if (!db) throw new Error('Database not initialized');
+    
+    const result = await db.runAsync(
+      'UPDATE Attributes SET value = ? WHERE item_id = ? AND attribute_type = ?',
+      [value, itemId, attributeType]
+    );
+    
+    return result.changes > 0;
+  }
+  
+  static async createAttribute(itemId: number, attributeType: string, value: string): Promise<boolean> {
+    if (!db) throw new Error('Database not initialized');
+    
+    const result = await db.runAsync(
+      'INSERT INTO Attributes (item_id, attribute_type, value) VALUES (?, ?, ?)',
+      [itemId, attributeType, value]
+    );
+    
+    return result.changes > 0;
+  }
+  
   static async getByStatus(statusId: number): Promise<Item[]> {
     if (!db) throw new Error('Database not initialized');
     
@@ -551,9 +720,16 @@ export class TagDAO {
   static async create(tag: Omit<Tag, 'id'>): Promise<number> {
     if (!db) throw new Error('Database not initialized');
     
+    let colorId = null;
+    if (tag.color) {
+      // Find color by hex code
+      const color = await db.getFirstAsync<{id: number}>('SELECT id FROM Colors WHERE hex_code = ?', [tag.color]);
+      colorId = color?.id || null;
+    }
+    
     const result = await db.runAsync(
       'INSERT INTO Tags (name, color_id) VALUES (?, ?)',
-      [tag.name, tag.color ? parseInt(tag.color) : null]
+      [tag.name, colorId]
     );
     
     return result.lastInsertRowId!;
@@ -616,6 +792,24 @@ export class TagDAO {
     if (!db) throw new Error('Database not initialized');
     
     const result = await db.runAsync('DELETE FROM Tags WHERE id = ?', [id]);
+    return result.changes > 0;
+  }
+  
+  static async update(id: number, tag: Partial<Omit<Tag, 'id'>>): Promise<boolean> {
+    if (!db) throw new Error('Database not initialized');
+    
+    let colorId = null;
+    if (tag.color) {
+      // Find color by hex code
+      const color = await db.getFirstAsync<{id: number}>('SELECT id FROM Colors WHERE hex_code = ?', [tag.color]);
+      colorId = color?.id || null;
+    }
+    
+    const result = await db.runAsync(
+      'UPDATE Tags SET name = ?, color_id = ? WHERE id = ?',
+      [tag.name || '', colorId, id]
+    );
+    
     return result.changes > 0;
   }
 }

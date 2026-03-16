@@ -1,6 +1,5 @@
 import { Path } from "react-native-svg"
 const PathLayout = (props) => (
-  
     <Path
       stroke={props["strokeColor"] || '#fff'}
       strokeLinecap={props["strokeLinecap"] || 'round'}
