@@ -228,7 +228,7 @@ export default function ItemDetail() {
 
   const handleEdit = () => {
     // Navigate to edit screen
-    router.push(`/edit-item/index?id=${id}`); // /edit-item?id=${id} <- OLD BUT GOLD
+    router.push(`/edit-item?id=${id}`); // /edit-item?id=${id} <- OLD BUT GOLD
   };
 
   const handleDelete = () => {

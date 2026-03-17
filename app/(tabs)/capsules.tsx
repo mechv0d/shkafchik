@@ -167,6 +167,10 @@ export default function CapsulesScreen() {
 }
 
 const styles = StyleSheet.create({
+  cardContainer: {
+        borderWidth: 1,
+    borderColor: 'red',
+  },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',

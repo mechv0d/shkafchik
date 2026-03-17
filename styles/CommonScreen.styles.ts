@@ -88,11 +88,13 @@ export const commonScreenStyles = StyleSheet.create({
   // Card styles
   card: {
     borderRadius: 12,
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
     marginBottom: 12,
     backgroundColor: '#ffffff',
-    elevation: 0,
-    paddingVertical: 8,
+    elevation: 1,
+    borderWidth: 1,
+    borderColor: '#aaa',
   },
   
   cardTitle: {

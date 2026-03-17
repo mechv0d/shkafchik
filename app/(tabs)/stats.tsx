@@ -159,7 +159,7 @@ export default function StatsScreen() {
         </View>
       </View>
 
-      <View style={styles.debugSection}>
+      {/* <View style={styles.debugSection}>
         <ThemedText type="subtitle" style={styles.debugTitle}>Debug</ThemedText>
         <TouchableOpacity 
           style={[styles.debugButton, styles.clearButton]} 
@@ -182,7 +182,7 @@ export default function StatsScreen() {
         >
           <ThemedText style={styles.debugButtonText}>Обновить базу данных (миграции)</ThemedText>
         </TouchableOpacity>
-      </View>
+      </View> */}
     </ThemedView>
   );
 }

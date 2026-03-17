@@ -167,7 +167,7 @@ export default function CapsuleDetailScreen() {
               onPress={handleEdit}
             >
               <Ionicons name="create-outline" size={20} color={colors.tint} />
-              <Text style={[styles.actionButtonText, { color: colors.tint }]}>Редактировать</Text>
+              <Text style={[styles.actionButtonText, { color: colors.tint }]}>Изменить</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.actionButton, styles.deleteButton, { borderColor: '#ff4444' }]}

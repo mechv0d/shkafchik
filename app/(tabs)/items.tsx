@@ -4,6 +4,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import HangerIcon from '@/components/ui/icons/HangerIcon';
 import SearchIcon from '@/components/ui/icons/SearchIcon';
+import HeartIcon from '@/components/ui/icons/HeartIcon';
 import { Colors } from '@/constants/theme';
 import { initDatabase, ItemDAO } from '@/src/api/database';
 import { commonScreenStyles } from '@/styles/CommonScreen.styles';
@@ -118,12 +119,12 @@ export default function ItemsScreen() {
           />
           <SortButton
             title="Избранное"
-            icon={<HangerIcon />}
+            icon={<HeartIcon />}
             count={items.filter(item => item.is_favorite).length}
             isActive={sortBy === 'favorites'}
             onPress={() => setSortBy('favorites')}
           />
-          <SortButton
+          {/* <SortButton
             title="В корзине"
             icon={<HangerIcon />}
             count={items.filter(item => item.in_cart).length}
@@ -136,7 +137,7 @@ export default function ItemsScreen() {
             count={items.filter(item => item.is_purchased).length}
             isActive={sortBy === 'purchased'}
             onPress={() => setSortBy('purchased')}
-          />
+          /> */}
           </ScrollView>
         </View>
 
