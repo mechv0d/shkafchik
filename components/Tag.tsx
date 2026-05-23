@@ -8,16 +8,14 @@ export interface TagProps {
   color?: string;
   onPress?: () => void;
   disabled?: boolean;
-  isProtected?: boolean;
 }
 
 export function Tag({ 
   id, 
   name, 
   color, 
-  onPress, 
-  disabled = false, 
-  isProtected = false 
+  onPress,
+  disabled = false,
 }: TagProps) {
   const isWhiteColor = color?.toLowerCase() === '#ffffff';
   const isBeigeColor = color?.toLowerCase() === '#f5f5dc';
@@ -38,11 +36,7 @@ export function Tag({
   
   return (
     <TouchableOpacity
-      style={[
-        styles.tag,
-        isProtected && styles.protectedTag,
-        disabled && styles.disabledTag
-      ]}
+      style={[styles.tag, disabled && styles.disabledTag]}
       onPress={onPress}
       disabled={disabled}
     >
@@ -82,10 +76,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     color: '#333',
-  },
-  
-  protectedTag: {
-    opacity: 0.6,
   },
   
   disabledTag: {

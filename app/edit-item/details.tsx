@@ -186,9 +186,9 @@ export default function EditDetailsScreen() {
       </View>
 
       <ThemedView style={commonScreenStyles.section}>
-        <ThemedText style={{ fontSize: 12, color: '#666', marginBottom: 16 }}>
+        {/* <ThemedText style={{ fontSize: 12, color: '#666', marginBottom: 16 }}>
           Отладка: редактирование вещи ID: {id}
-        </ThemedText>
+        </ThemedText> */}
         
         {error ? (
           <View style={addItemStyles.errorContainerAlt}>

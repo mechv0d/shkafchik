@@ -23,14 +23,7 @@ export default function EditTagsScreen() {
     try {
       await initDatabase();
       const tagsResult = await TagDAO.getAll();
-      
-      // Sort: "Новое" first, then by creation date (newest first)
-      const sortedTags = tagsResult.sort((a, b) => {
-        if (a.name === 'Новое') return -1;
-        if (b.name === 'Новое') return 1;
-        return b.id - a.id; // Newest first for other tags
-      });
-      
+      const sortedTags = tagsResult.sort((a, b) => b.id - a.id);
       setAvailableTags(sortedTags);
     } catch (error) {
       console.error('Failed to load tags:', error);
@@ -44,12 +37,10 @@ export default function EditTagsScreen() {
   };
 
   const removeTag = (tagName: string) => {
-    // Don't allow removal of 'Новое' tag
-    if (tagName === 'Новое') {
-      return;
-    }
     updateFormData({ tags: formData.tags.filter(t => t !== tagName) });
   };
+
+  const selectedTags = formData.tags.filter((t) => t.trim());
 
   const isTagSelected = (tagName: string) => {
     return formData.tags.includes(tagName);
@@ -113,36 +104,34 @@ export default function EditTagsScreen() {
         
         <View style={styles.selectedTagsContainer}>
           <ThemedText style={styles.selectedTagsLabel}>Выбранные теги:</ThemedText>
-          <View style={styles.tagsContainer}>
-            {formData.tags.map((tagName) => {
-              const tag = availableTags.find(t => t.name === tagName);
-              return (
-                <View key={tagName} style={styles.tagItem}>
-                  {tag ? (
-                    <Tag
-                      id={tag.id}
-                      name={tag.name}
-                      color={tag.color}
-                      disabled={tagName === 'Новое'}
-                      isProtected={tagName === 'Новое'}
-                    />
-                  ) : (
-                    <View style={styles.customTagItem}>
-                      <ThemedText style={styles.customTagText}>{tagName}</ThemedText>
-                    </View>
-                  )}
-                  {tagName !== 'Новое' && (
-                    <TouchableOpacity 
+          {selectedTags.length === 0 ? (
+            <ThemedText style={styles.emptyTagsText}>
+              У вещи нет выбранных тегов
+            </ThemedText>
+          ) : (
+            <View style={styles.tagsContainer}>
+              {selectedTags.map((tagName) => {
+                const tag = availableTags.find(t => t.name === tagName);
+                return (
+                  <View key={tagName} style={styles.tagItem}>
+                    {tag ? (
+                      <Tag id={tag.id} name={tag.name} color={tag.color} />
+                    ) : (
+                      <View style={styles.customTagItem}>
+                        <ThemedText style={styles.customTagText}>{tagName}</ThemedText>
+                      </View>
+                    )}
+                    <TouchableOpacity
                       onPress={() => removeTag(tagName)}
                       style={styles.removeButton}
                     >
                       <ThemedText style={styles.removeText}>✕</ThemedText>
                     </TouchableOpacity>
-                  )}
-                </View>
-              );
-            })}
-          </View>
+                  </View>
+                );
+              })}
+            </View>
+          )}
         </View>
       </ThemedView>
 
@@ -182,15 +171,8 @@ export default function EditTagsScreen() {
                         addTag(tag);
                       }
                     }}
-                    disabled={tag.name === 'Новое'}
                   >
-                    <Tag
-                      id={tag.id}
-                      name={tag.name}
-                      color={tag.color}
-                      disabled={tag.name === 'Новое'}
-                      isProtected={tag.name === 'Новое'}
-                    />
+                    <Tag id={tag.id} name={tag.name} color={tag.color} />
                     {selected && (
                       <ThemedText style={styles.checkmark}>✓</ThemedText>
                     )}
@@ -230,6 +212,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     marginBottom: 8,
+    color: '#666',
+  },
+  emptyTagsText: {
+    fontSize: 14,
     color: '#666',
   },
   tagsContainer: {

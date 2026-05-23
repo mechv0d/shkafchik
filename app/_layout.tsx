@@ -45,6 +45,7 @@ export default function RootLayout() {
         <Stack.Screen name="capsules/create" options={{ headerShown: false }} />
         <Stack.Screen name="capsules/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="tags" options={{ title: 'Теги' }} />
+        <Stack.Screen name="debug/index" options={{ title: 'Разработчик' }} />
       </Stack>
       <StatusBar style="light" />
     </ThemeProvider>

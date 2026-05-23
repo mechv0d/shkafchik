@@ -30,7 +30,7 @@ const defaultEditFormData: EditFormData = {
   rating: 0,
   category: '',
   subcategory: '',
-  tags: ['Новое'],
+  tags: [],
   existingImages: [],
   imagesToDelete: [],
 };
@@ -66,7 +66,7 @@ export const EditFormProvider: React.FC<{ children: ReactNode }> = ({ children }
       category: item.category?.name || '',
       subcategory: '',
       categoryId: item.category?.id,
-      tags: item.tags?.map(tag => tag.name) || ['Новое'],
+      tags: item.tags?.map(tag => tag.name) ?? [],
       existingImages: item.images?.map(img => img.file_path) || [],
       imagesToDelete: [],
     });

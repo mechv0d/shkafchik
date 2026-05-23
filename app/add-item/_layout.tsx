@@ -1,6 +1,6 @@
-import { ProcessedImage } from '@/src/api/imageProcessor';
-import { Stack } from 'expo-router/stack';
-import React, { createContext, ReactNode, useContext, useState } from 'react';
+import { ProcessedImage } from "@/src/api/imageProcessor";
+import { Stack } from "expo-router/stack";
+import React, { createContext, ReactNode, useContext, useState } from "react";
 
 export interface FormData {
   photos: ProcessedImage[];
@@ -14,19 +14,29 @@ export interface FormData {
   subcategory: string;
   categoryId?: number;
   tags: string[];
+  // AI Analysis state
+  aiSuggestions: {
+    name: string;
+    tags: string[];
+  } | null;
+  isAnalyzing: boolean;
+  aiError: string | null;
 }
 
 const defaultFormData: FormData = {
   photos: [],
-  name: '',
-  description: '',
-  status: '',
-  purchaseDate: new Date().toISOString().split('T')[0],
-  store: '',
+  name: "",
+  description: "",
+  status: "",
+  purchaseDate: new Date().toISOString().split("T")[0],
+  store: "",
   rating: 0,
-  category: '',
-  subcategory: '',
-  tags: ['Новое'],
+  category: "",
+  subcategory: "",
+  tags: [],
+  aiSuggestions: null,
+  isAnalyzing: false,
+  aiError: null,
 };
 
 const FormContext = createContext<{
@@ -34,11 +44,13 @@ const FormContext = createContext<{
   updateFormData: (updates: Partial<FormData>) => void;
 } | null>(null);
 
-export const FormProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const FormProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const [formData, setFormData] = useState<FormData>(defaultFormData);
 
   const updateFormData = (updates: Partial<FormData>) => {
-    setFormData(prev => ({ ...prev, ...updates }));
+    setFormData((prev) => ({ ...prev, ...updates }));
   };
 
   return (
@@ -51,7 +63,7 @@ export const FormProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 export const useFormData = () => {
   const context = useContext(FormContext);
   if (!context) {
-    throw new Error('useFormData must be used within FormProvider');
+    throw new Error("useFormData must be used within FormProvider");
   }
   return context;
 };
@@ -59,15 +71,17 @@ export const useFormData = () => {
 export default function AddItemLayout() {
   return (
     <FormProvider>
-      <Stack screenOptions={{ 
-        headerShown: false,
-        animation: 'slide_from_right'
-      }}>
-        <Stack.Screen name="index" options={{ title: 'Добавить вещь' }} />
-        <Stack.Screen name="name" options={{ title: 'Название' }} />
-        <Stack.Screen name="category" options={{ title: 'Категория' }} />
-        <Stack.Screen name="details" options={{ title: 'Детали' }} />
-        <Stack.Screen name="tags" options={{ title: 'Теги' }} />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          animation: "slide_from_right",
+        }}
+      >
+        <Stack.Screen name="index" options={{ title: "Добавить вещь" }} />
+        <Stack.Screen name="name" options={{ title: "Название" }} />
+        <Stack.Screen name="category" options={{ title: "Категория" }} />
+        <Stack.Screen name="details" options={{ title: "Детали" }} />
+        <Stack.Screen name="tags" options={{ title: "Теги" }} />
       </Stack>
     </FormProvider>
   );

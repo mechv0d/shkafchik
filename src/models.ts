@@ -54,6 +54,14 @@ export interface Setting {
   value: string;
 }
 
+export interface SavedFilterSet {
+  id: number;
+  name: string;
+  criteria_json: string;
+  date_created: string;
+  date_modified: string;
+}
+
 export interface UserCategory {
   id: number;
   name: string;

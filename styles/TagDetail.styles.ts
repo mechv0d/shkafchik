@@ -214,18 +214,22 @@ export const tagDetailStyles = StyleSheet.create({
   },
   
   createButton: {
-    backgroundColor: '#007AFF',
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    backgroundColor: '#000',
+    // width: 32,
+    // height: 32,
+    borderRadius: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    gap: 4,
     justifyContent: 'center',
     alignItems: 'center',
   },
   
   createButtonText: {
     color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 14,
+    // fontWeight: 'bold',
   },
   
   // Protected tag styles

@@ -24,14 +24,7 @@ export default function TagsScreen() {
     try {
       await initDatabase();
       const tagsResult = await TagDAO.getAll();
-      
-      // Sort: "Новое" first, then by creation date (newest first)
-      const sortedTags = tagsResult.sort((a, b) => {
-        if (a.name === 'Новое') return -1;
-        if (b.name === 'Новое') return 1;
-        return b.id - a.id; // Newest first for other tags
-      });
-      
+      const sortedTags = tagsResult.sort((a, b) => b.id - a.id);
       setAvailableTags(sortedTags);
     } catch (error) {
       console.error('Failed to load tags:', error);
@@ -45,12 +38,10 @@ export default function TagsScreen() {
   };
 
   const removeTag = (tagName: string) => {
-    // Don't allow removal of 'Новое' tag
-    if (tagName === 'Новое') {
-      return;
-    }
     updateFormData({ tags: formData.tags.filter(t => t !== tagName) });
   };
+
+  const selectedTags = formData.tags.filter((t) => t.trim());
 
   const isTagSelected = (tagName: string) => {
     return formData.tags.includes(tagName);
@@ -65,10 +56,13 @@ export default function TagsScreen() {
       if (formData.categoryId) {
         category = await CategoryDAO.getById(formData.categoryId);
       } else {
-        // Fallback for backward compatibility
-        category = await CategoryDAO.getByName(formData.subcategory);
+        const subName = formData.subcategory?.trim();
+        if (!subName) {
+          throw new Error('Category is required');
+        }
+        category = await CategoryDAO.getByName(subName);
         if (!category) {
-          const catId = await CategoryDAO.create({ name: formData.subcategory });
+          const catId = await CategoryDAO.create({ name: subName });
           category = await CategoryDAO.getById(catId);
         }
       }
@@ -109,6 +103,10 @@ export default function TagsScreen() {
       ];
       for (const attr of attributes) {
         if (attr.value && attr.value !== '0') {
+          console.log('Creating attribute:', attr);
+          console.log('Item ID:', itemId);
+          console.log('Attribute type:', attr.type);
+          console.log('Attribute value:', attr.value);
           await AttributeDAO.create({
             item_id: itemId,
             attribute_type: attr.type,
@@ -118,7 +116,7 @@ export default function TagsScreen() {
       }
 
       // Insert tags
-      for (const tagName of formData.tags) {
+      for (const tagName of selectedTags) {
         // Find existing tag or create new one
         let tag = availableTags.find(t => t.name === tagName);
         if (!tag) {
@@ -154,47 +152,45 @@ export default function TagsScreen() {
 
       <ThemedView style={commonScreenStyles.section}>
         <View style={styles.sectionHeader}>
-          <ThemedText type="subtitle">Теги</ThemedText>
+          {/* <ThemedText type="subtitle">Теги</ThemedText> */}
           <TouchableOpacity 
             style={styles.addTagButton} 
             onPress={() => setShowTagModal(true)}
           >
-            <ThemedText style={styles.addTagButtonText}>+ Добавить</ThemedText>
+            <ThemedText style={styles.addTagButtonText}>+ Добавить тег</ThemedText>
           </TouchableOpacity>
         </View>
         
         <View style={styles.selectedTagsContainer}>
-          <ThemedText style={styles.selectedTagsLabel}>Выбранные теги:</ThemedText>
-          <View style={styles.tagsContainer}>
-            {formData.tags.map((tagName) => {
-              const tag = availableTags.find(t => t.name === tagName);
-              return (
-                <View key={tagName} style={styles.tagItem}>
-                  {tag ? (
-                    <Tag
-                      id={tag.id}
-                      name={tag.name}
-                      color={tag.color}
-                      disabled={tagName === 'Новое'}
-                      isProtected={tagName === 'Новое'}
-                    />
-                  ) : (
-                    <View style={styles.customTagItem}>
-                      <ThemedText style={styles.customTagText}>{tagName}</ThemedText>
-                    </View>
-                  )}
-                  {tagName !== 'Новое' && (
-                    <TouchableOpacity 
+          {/* <ThemedText style={styles.selectedTagsLabel}>Выбранные теги:</ThemedText> */}
+          {selectedTags.length === 0 ? (
+            <ThemedText style={styles.emptyTagsText}>
+              У вещи нет выбранных тегов
+            </ThemedText>
+          ) : (
+            <View style={styles.tagsContainer}>
+              {selectedTags.map((tagName) => {
+                const tag = availableTags.find(t => t.name === tagName);
+                return (
+                  <View key={tagName} style={styles.tagItem}>
+                    {tag ? (
+                      <Tag id={tag.id} name={tag.name} color={tag.color} />
+                    ) : (
+                      <View style={styles.customTagItem}>
+                        <ThemedText style={styles.customTagText}>{tagName}</ThemedText>
+                      </View>
+                    )}
+                    <TouchableOpacity
                       onPress={() => removeTag(tagName)}
                       style={styles.removeButton}
                     >
                       <ThemedText style={styles.removeText}>✕</ThemedText>
                     </TouchableOpacity>
-                  )}
-                </View>
-              );
-            })}
-          </View>
+                  </View>
+                );
+              })}
+            </View>
+          )}
         </View>
       </ThemedView>
 
@@ -240,15 +236,8 @@ export default function TagsScreen() {
                         addTag(tag);
                       }
                     }}
-                    disabled={tag.name === 'Новое'}
                   >
-                    <Tag
-                      id={tag.id}
-                      name={tag.name}
-                      color={tag.color}
-                      disabled={tag.name === 'Новое'}
-                      isProtected={tag.name === 'Новое'}
-                    />
+                    <Tag id={tag.id} name={tag.name} color={tag.color} />
                     {selected && (
                       <ThemedText style={styles.checkmark}>✓</ThemedText>
                     )}
@@ -271,7 +260,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   addTagButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#000',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
@@ -288,6 +277,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     marginBottom: 8,
+    color: '#666',
+  },
+  emptyTagsText: {
+    fontSize: 14,
     color: '#666',
   },
   tagsContainer: {

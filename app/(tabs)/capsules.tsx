@@ -26,7 +26,7 @@ const CapsuleCard: React.FC<CapsuleCardProps> = ({ capsule, onPress }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'активная':
-        return '#4CAF50';
+        return '#000';
       case 'архивная':
         return '#9E9E9E';
       case 'черновик':
@@ -39,9 +39,9 @@ const CapsuleCard: React.FC<CapsuleCardProps> = ({ capsule, onPress }) => {
   const getTypeColor = (type: string) => {
     switch (type) {
       case 'постоянная':
-        return '#2196F3';
+        return '#a0aaff';
       case 'временная':
-        return '#9C27B0';
+        return '#FF9800';
       default:
         return colors.text;
     }
@@ -172,13 +172,13 @@ const styles = StyleSheet.create({
     borderColor: 'red',
   },
   cardHeader: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: 8,
   },
   badges: {
-    flexDirection: 'column',
+    flexDirection: 'row',
     gap: 4,
   },
   dates: {

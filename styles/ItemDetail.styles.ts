@@ -237,6 +237,11 @@ export const itemDetailStyles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
   },
+  emptyTagsText: {
+    fontSize: 14,
+    color: '#666',
+    fontFamily: Fonts.sans,
+  },
   tag: {
     flexDirection: 'row',
     alignItems: 'center',
